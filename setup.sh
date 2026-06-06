@@ -82,9 +82,25 @@ verify_archive() {
   fi
 }
 
-echo "==> apt deps (stress-ng, build-essential, lm-sensors, util-linux, xz, curl)"
-sudo apt update
-sudo apt install -y stress-ng build-essential lm-sensors util-linux xz-utils curl
+# ── package manager detection ─────────────────────────────────────────────────
+install_packages() {
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "==> apt deps (stress-ng, build-essential, lm-sensors, util-linux, xz, curl, file)"
+    sudo apt-get update
+    sudo apt-get install -y stress-ng build-essential lm-sensors util-linux xz-utils curl file
+  elif command -v dnf >/dev/null 2>&1; then
+    echo "==> dnf deps (stress-ng, gcc, make, lm_sensors, util-linux, xz, curl, file)"
+    sudo dnf install -y stress-ng gcc make lm_sensors util-linux xz curl file
+  elif command -v pacman >/dev/null 2>&1; then
+    echo "==> pacman deps (stress-ng, base-devel, lm_sensors, util-linux, xz, curl, file)"
+    sudo pacman -S --noconfirm stress-ng base-devel lm_sensors util-linux xz curl file
+  else
+    echo "WARNING: unsupported package manager — install manually: stress-ng, a C toolchain (gcc/make), lm-sensors, xz, curl, file" >&2
+    echo "         Continuing; vendored-tool downloads may still succeed." >&2
+  fi
+}
+
+install_packages
 
 echo "==> y-cruncher"
 if [ ! -x "$VENDOR"/y-cruncher*/y-cruncher ]; then
