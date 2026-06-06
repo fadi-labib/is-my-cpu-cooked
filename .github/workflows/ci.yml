@@ -1,0 +1,28 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shellcheck-and-unit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: shellcheck
+        run: |
+          shellcheck -S warning \
+            setup.sh \
+            run-all.sh \
+            report.sh \
+            tests/*.sh \
+            watcher/*.sh \
+            lib/*.sh \
+            test/*.sh
+
+      - name: Unit tests (test/test-common.sh)
+        run: bash test/test-common.sh
