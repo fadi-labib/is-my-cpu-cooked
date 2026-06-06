@@ -1,6 +1,14 @@
 # is-my-cpu-cooked
 
-**Is your Intel chip cooked?** A Linux stress-test suite that proves or disproves
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+![Platform: Linux](https://img.shields.io/badge/platform-Linux-informational)
+![Shell: Bash](https://img.shields.io/badge/shell-Bash-4EAA25?logo=gnu-bash&logoColor=white)
+![Target: Intel 13th / 14th Gen](https://img.shields.io/badge/Intel-13th%20%2F%2014th%20Gen-0071C5?logo=intel&logoColor=white)
+[![CI](https://github.com/fadi-labib/is-my-cpu-cooked/actions/workflows/ci.yml/badge.svg)](https://github.com/fadi-labib/is-my-cpu-cooked/actions/workflows/ci.yml)
+
+> **Is your Intel chip cooked?** Find out for sure — then build the evidence to RMA it.
+
+A Linux stress-test suite that proves or disproves
 **Intel Raptor Lake (13th/14th-gen) Vmin-shift degradation** — the hardware
 defect that causes random crashes, kernel BUGs, and silent compute errors under
 ordinary workloads. It auto-detects the suspect preferred/fastest-boosting core
@@ -9,6 +17,23 @@ most clearly, then bundles the evidence for an Intel RMA.
 
 See `docs/specs/2026-06-06-cpu-degradation-testkit-design.md` for the full
 technical rationale.
+
+---
+
+## Contents
+
+- [Is this for me?](#is-this-for-me)
+- [Why single-core, light-load tests?](#why-single-core-light-load-tests)
+- [Step 0 — eliminate the confounder](#step-0--eliminate-the-confounder-important)
+- [Quickstart](#quickstart)
+- [Example output](#example-output)
+- [Tests](#tests-priority-order)
+- [Reading results](#reading-results)
+- [Generating an RMA report](#generating-an-rma-report)
+- [Catching real crashes automatically](#catching-real-crashes-automatically-recommended)
+- [RMA guidance](#rma-guidance)
+- [Control experiment](#control-experiment-for-extra-confidence)
+- [Safety disclaimer](#safety-disclaimer)
 
 ---
 
@@ -80,6 +105,35 @@ Monitor temps live in another terminal:
 ```bash
 watch -n2 'sensors | grep -E "Package|Core"'
 ```
+
+---
+
+## Example output
+
+Each run prints a one-line verdict and writes a full evidence trail under
+`results/`:
+
+```text
+$ ./run-all.sh --tests core-target,core-sweep --minutes 30
+CPU: Intel(R) Core(TM) i9-14900K | preferred cores: 8 9 10 11 | microcode: 0x133
+===== loop 1/1 =====
+--- core-target ---
+--- core-sweep ---
+  >> CPU 8  ok
+  >> CPU 10 FAILED
+  >> CPU 0  ok
+  >> CPU 2  ok
+  ...
+==> FAIL (errors) | logs: results/20260606-141230 | summary: results/SUMMARY.md
+```
+
+A failing core in the sweep that others pass *localises* the defect — exactly the
+kind of pinpointed evidence an RMA needs. `results/SUMMARY.md` accumulates one
+row per run:
+
+| timestamp | min | tests | verdict | max pkg °C | errors | notes |
+|-----------|-----|-------|---------|-----------|--------|-------|
+| 20260606-141230 | 30 | core-target core-sweep | FAIL (errors) | 88 | 1 | - |
 
 ---
 
