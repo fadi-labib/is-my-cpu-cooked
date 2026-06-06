@@ -24,6 +24,15 @@ tk_scan_log compile   "$FX/compile-fail.log"   >/dev/null; assert_rc $? 1 "compi
 tk_scan_log prime95   "$FX/prime95-fail.log"   >/dev/null; assert_rc $? 1 "prime95 FATAL = error"
 tk_scan_log stress-ng "$FX/stressng-fail.log"  >/dev/null; assert_rc $? 1 "stress-ng verify fail = error"
 
+# --- summary append ---
+TMP="$(mktemp -d)"
+tk_summary_append "$TMP" "20260606-120000" "90" "core-target" "FAIL (errors)" "88" "3" "core5"
+tk_summary_append "$TMP" "20260606-140000" "90" "all" "PASS" "79" "0" "-"
+assert_eq "$(grep -c '^| 2026' "$TMP/SUMMARY.md")" "2" "SUMMARY.md has 2 data rows"
+assert_eq "$(grep -c '^20260606' "$TMP/runs.csv")" "2" "runs.csv has 2 data rows"
+assert_eq "$(head -1 "$TMP/runs.csv")" "timestamp,minutes,tests,verdict,max_pkg_c,errors,notes" "csv header correct"
+rm -rf "$TMP"
+
 # --- crash markers ---
 TMP="$(mktemp -d)"
 mkdir -p "$TMP/20260606-100000" "$TMP/20260606-110000"

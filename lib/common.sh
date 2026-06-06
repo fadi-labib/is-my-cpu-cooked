@@ -17,6 +17,25 @@ tk_preferred_cpus() {
 tk_detect_preferred_cpus() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_preferred_cpus; }
 
 # tk_scan_log <tool> <logfile> -> echoes matched FAIL lines; rc 0=clean, 1=errors found.
+# tk_summary_append <dir> <ts> <minutes> <tests> <verdict> <maxpkg> <errcount> <notes>
+tk_summary_append() {
+  local dir="$1" ts="$2" min="$3" tests="$4" verdict="$5" pkg="$6" errs="$7" notes="$8"
+  local md="$dir/SUMMARY.md" csv="$dir/runs.csv"
+  if [ ! -f "$md" ]; then
+    {
+      echo "# CPU Testkit — Run Summary"
+      echo
+      echo "| timestamp | min | tests | verdict | max pkg °C | errors | notes |"
+      echo "|-----------|-----|-------|---------|-----------|--------|-------|"
+    } > "$md"
+  fi
+  echo "| $ts | $min | $tests | $verdict | $pkg | $errs | $notes |" >> "$md"
+  if [ ! -f "$csv" ]; then
+    echo "timestamp,minutes,tests,verdict,max_pkg_c,errors,notes" > "$csv"
+  fi
+  echo "$ts,$min,$tests,$verdict,$pkg,$errs,$notes" >> "$csv"
+}
+
 # Markers — each fsync'd so they survive a hard reset.
 tk_mark_start()    { echo "started $(date '+%F %T')" > "$1/START"; sync "$1/START" 2>/dev/null || sync; }
 tk_mark_progress() { echo "$2 @ $(date '+%F %T')" > "$1/progress"; sync "$1/progress" 2>/dev/null || sync; }
