@@ -1,0 +1,2 @@
+stress-ng: info:  [123] dispatching hogs: 8 cpu
+stress-ng: fail:  [123] cpu: verification failed at iteration 42
