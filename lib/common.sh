@@ -82,3 +82,18 @@ tk_scan_log() {
   if grep -nE "$pat" "$log"; then return 1; fi
   return 0
 }
+
+TK_SAMPLER_PID=""
+# tk_temp_sampler_start <run_dir> <interval_seconds>
+tk_temp_sampler_start() {
+  local dir="$1" iv="${2:-5}"
+  ( while true; do
+      sensors 2>/dev/null | grep -E "Package id 0|^Core " >> "$dir/temps.log"
+      sleep "$iv"
+    done ) &
+  TK_SAMPLER_PID=$!
+}
+tk_temp_sampler_stop() {
+  [ -n "$TK_SAMPLER_PID" ] && kill "$TK_SAMPLER_PID" 2>/dev/null
+  TK_SAMPLER_PID=""
+}
