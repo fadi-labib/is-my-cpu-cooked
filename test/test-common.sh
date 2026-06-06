@@ -9,4 +9,9 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 # --- sanity ---
 assert_eq "$(tk_version)" "testkit-1.0" "tk_version returns version string"
 
+# --- tk_preferred_cpus: highest-MAXMHZ logical CPUs from lscpu -e text ---
+FX="$HERE/fixtures"
+assert_eq "$(tk_preferred_cpus < "$FX/lscpu-e.txt")" "8 9 10 11" \
+  "tk_preferred_cpus lists the 6.0GHz logical CPUs"
+
 tk_test_summary
