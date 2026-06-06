@@ -10,6 +10,7 @@ VENDOR="$HERE/../vendor"
 DURATION_MIN="${DURATION_MIN:-30}"
 TARGET="${TK_TARGET_CPU:-$(tk_detect_preferred_cpus | awk '{print $1}')}"
 LOG="$RUN_DIR/core-target.log"
+[ -n "$TARGET" ] || { echo "could not detect a target CPU (lscpu failed?)" | tee -a "$LOG"; exit 2; }
 YC="$(ls "$VENDOR"/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
 
 tk_mark_progress "$RUN_DIR" "core-target (cpu $TARGET)"

@@ -46,6 +46,7 @@ run_once() {
 
   tk_temp_sampler_start "$dir" 5
   [ "$VOLTS" -eq 1 ] && tk_volts_sampler_start "$dir" 5
+  trap 'tk_temp_sampler_stop; [ "$VOLTS" -eq 1 ] && tk_volts_sampler_stop' EXIT INT TERM
 
   local errs=0 ran=""
   IFS=',' read -ra LIST <<< "$TESTS"
@@ -60,6 +61,7 @@ run_once() {
 
   tk_temp_sampler_stop
   [ "$VOLTS" -eq 1 ] && tk_volts_sampler_stop
+  trap - EXIT INT TERM
   local maxpkg; maxpkg="$(tk_max_temp "$dir/temps.log")"
   local verdict; verdict="$(tk_overall_verdict "$errs" "$maxpkg" "$THERMAL")"
   echo "$verdict (errors=$errs maxpkg=${maxpkg}C tests: $ran)" > "$dir/verdict.txt"
