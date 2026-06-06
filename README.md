@@ -1,11 +1,11 @@
-# CPU Degradation Testkit
+# is-my-cpu-cooked
 
-A Linux stress-test suite that proves or disproves **Intel Raptor Lake
-(13th/14th-gen) Vmin-shift degradation** — the hardware defect that causes
-random crashes, kernel BUGs, and silent compute errors under ordinary
-workloads. It auto-detects the suspect preferred/fastest-boosting core on your
-CPU and applies targeted single-thread pressure where the defect shows most
-clearly.
+**Is your Intel chip cooked?** A Linux stress-test suite that proves or disproves
+**Intel Raptor Lake (13th/14th-gen) Vmin-shift degradation** — the hardware
+defect that causes random crashes, kernel BUGs, and silent compute errors under
+ordinary workloads. It auto-detects the suspect preferred/fastest-boosting core
+on your CPU and applies targeted single-thread pressure where the defect shows
+most clearly, then bundles the evidence for an Intel RMA.
 
 See `docs/specs/2026-06-06-cpu-degradation-testkit-design.md` for the full
 technical rationale.
