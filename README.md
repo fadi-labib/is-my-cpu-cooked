@@ -25,6 +25,7 @@ technical rationale.
 - [Is this for me?](#is-this-for-me)
 - [Why single-core, light-load tests?](#why-single-core-light-load-tests)
 - [Step 0 — eliminate the confounder](#step-0--eliminate-the-confounder-important)
+  - [preflight.sh — automated baseline check](#preflightsh--automated-baseline-check)
 - [Quickstart](#quickstart)
 - [Example output](#example-output)
 - [Tests](#tests-priority-order)
@@ -79,6 +80,22 @@ overclock can produce identical symptoms. Remove those variables first, then
 run the kit. If you re-enable them and failures return, that is still the CPU
 (the degraded Vmin cannot handle non-default conditions the chip was once
 perfectly stable on).
+
+### preflight.sh — automated baseline check
+
+Use `preflight.sh` to verify the BIOS baseline programmatically before
+trusting any stress result. It checks microcode version, RAPL power limits,
+CPU frequency governor, and (with root) RAM XMP/EXPO state:
+
+```bash
+./preflight.sh            # checks microcode, power limits, governor
+sudo ./preflight.sh       # full check including RAM/XMP via dmidecode
+```
+
+`preflight.sh` exits 0 ("BASELINE OK") if no hard confounders are detected,
+or exits 1 ("CONFOUNDERS PRESENT") if XMP/EXPO is on or power limits are
+removed. Fix any flagged issues before running the test battery — otherwise
+a FAIL may reflect the board configuration, not the CPU.
 
 ---
 

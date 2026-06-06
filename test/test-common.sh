@@ -55,6 +55,32 @@ assert_eq "$(echo "$out" | grep -c CRASHED)" "1" "tk_scan_crashed finds 1 incomp
 assert_eq "$(echo "$out" | grep -c core-target)" "1" "crash line names the in-progress test"
 rm -rf "$TMP"
 
+# --- tk_jedec_base ---
+assert_eq "$(tk_jedec_base 'DDR5')" "5600" "jedec base DDR5"
+assert_eq "$(tk_jedec_base 'DDR4')" "3200" "jedec base DDR4"
+assert_eq "$(tk_jedec_base 'DDR3')" "2133" "jedec base DDR3"
+assert_eq "$(tk_jedec_base 'LPDDR5')" "5600" "jedec base LPDDR5 (contains DDR5)"
+assert_eq "$(tk_jedec_base 'unknown')" "0"    "jedec base unknown type"
+
+# --- tk_xmp_state ---
+assert_eq "$(tk_xmp_state 6000 5600)" "on"      "xmp on when above JEDEC"
+assert_eq "$(tk_xmp_state 4800 5600)" "off"     "xmp off at JEDEC"
+assert_eq "$(tk_xmp_state 5600 5600)" "off"     "xmp off at exactly JEDEC base"
+assert_eq "$(tk_xmp_state 3600 3200)" "on"      "ddr4 xmp on"
+assert_eq "$(tk_xmp_state 3200 3200)" "off"     "ddr4 xmp off at JEDEC"
+assert_eq "$(tk_xmp_state '' 5600)"   "unknown" "xmp unknown when no data"
+assert_eq "$(tk_xmp_state 0 5600)"    "unknown" "xmp unknown when 0"
+assert_eq "$(tk_xmp_state Unknown 5600)" "unknown" "xmp unknown when 'Unknown'"
+assert_eq "$(tk_xmp_state 6000 0)"    "unknown" "xmp unknown when base 0"
+
+# --- tk_pl_state ---
+assert_eq "$(tk_pl_state 253)"  "ok"        "pl 253W ok"
+assert_eq "$(tk_pl_state 253)"  "ok"        "pl 253W ok (repeat)"
+assert_eq "$(tk_pl_state 4095)" "unlimited" "pl 4095W unlimited"
+assert_eq "$(tk_pl_state 1000)" "unlimited" "pl 1000W unlimited boundary"
+assert_eq "$(tk_pl_state 999)"  "ok"        "pl 999W ok boundary"
+assert_eq "$(tk_pl_state 0)"    "ok"        "pl 0W ok"
+
 # --- tk_is_affected_intel ---
 tk_is_affected_intel "Intel(R) Core(TM) i9-14900K"; assert_rc $? 0 "14900K is affected"
 tk_is_affected_intel "Intel(R) Core(TM) i7-13700K"; assert_rc $? 0 "13700K is affected"

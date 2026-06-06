@@ -18,6 +18,19 @@ if ! tk_is_affected_intel "$MODEL"; then
   fi
 fi
 
+# Advisory: cheaply check RAPL PL2 for unlimited power limits (no sudo needed).
+_PL2_FILE="/sys/class/powercap/intel-rapl:0/constraint_1_power_limit_uw"
+if [ -r "$_PL2_FILE" ]; then
+  _PL2_UW="$(cat "$_PL2_FILE" 2>/dev/null || echo 0)"
+  _PL2=$(( _PL2_UW / 1000000 ))
+  if [ "$(tk_pl_state "$_PL2")" = "unlimited" ]; then
+    echo "WARNING: CPU power limits look unlimited (MCE?) — run ./preflight.sh; a FAIL may reflect the board, not the chip."
+  fi
+  unset _PL2_UW _PL2
+fi
+unset _PL2_FILE
+echo "Tip: run ./preflight.sh to confirm BIOS baseline (Intel Default + XMP off) before trusting results."
+
 TESTS="core-target,core-sweep,stress-ng,y-cruncher,compile,prime95"
 MINUTES=90; LOOPS=1; VOLTS=0; THERMAL=95
 while [ $# -gt 0 ]; do

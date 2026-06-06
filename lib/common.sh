@@ -137,6 +137,36 @@ tk_is_affected_intel() {
   printf '%s\n' "$1" | grep -qE 'Core.*i[579]-1[34][0-9]{3}'
 }
 
+# tk_jedec_base <type-string> -> JEDEC max base speed (MT/s) for a DDR generation; 0 if unknown.
+tk_jedec_base() {
+  case "$1" in
+    *DDR5*) echo 5600 ;;
+    *DDR4*) echo 3200 ;;
+    *DDR3*) echo 2133 ;;
+    *) echo 0 ;;
+  esac
+}
+
+# tk_xmp_state <configured_mts> <jedec_base>
+# -> "on" if running above JEDEC base (XMP/EXPO active),
+#    "off" if at/below base,
+#    "unknown" if configured is empty/0/Unknown or base is 0.
+tk_xmp_state() {
+  local cfg="${1:-}" base="${2:-0}"
+  { [ -z "$cfg" ] || [ "$cfg" = "0" ] || [ "$cfg" = "Unknown" ]; } && { echo unknown; return; }
+  [ "${base:-0}" -gt 0 ] || { echo unknown; return; }
+  if [ "$cfg" -gt "$base" ]; then echo on; else echo off; fi
+}
+
+# tk_pl_state <pl2_watts>
+# -> "unlimited" if the short-term power limit looks like an auto-OC / MCE
+#    removal of limits (>=1000 W, incl. the 4095 W sentinel), else "ok".
+tk_pl_state() {
+  local pl2="${1:-0}"
+  [ "${pl2:-0}" -ge 1000 ] 2>/dev/null && { echo unlimited; return; }
+  echo ok
+}
+
 # tk_color <verdict> -> prints verdict, ANSI-colored when stdout is a terminal.
 # Green=PASS, Yellow=THERMAL, Red=everything else (FAIL, CRASHED, ...).
 tk_color() {
