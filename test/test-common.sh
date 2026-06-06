@@ -24,6 +24,12 @@ tk_scan_log compile   "$FX/compile-fail.log"   >/dev/null; assert_rc $? 1 "compi
 tk_scan_log prime95   "$FX/prime95-fail.log"   >/dev/null; assert_rc $? 1 "prime95 FATAL = error"
 tk_scan_log stress-ng "$FX/stressng-fail.log"  >/dev/null; assert_rc $? 1 "stress-ng verify fail = error"
 
+# --- overall verdict (errors win over thermal) ---
+assert_eq "$(tk_overall_verdict 0 79 95)"  "PASS"          "no errors, cool = PASS"
+assert_eq "$(tk_overall_verdict 2 79 95)"  "FAIL (errors)" "errors = FAIL"
+assert_eq "$(tk_overall_verdict 0 97 95)"  "THERMAL"       "hot, no errors = THERMAL"
+assert_eq "$(tk_overall_verdict 2 97 95)"  "FAIL (errors)" "errors beat thermal"
+
 # --- summary append ---
 TMP="$(mktemp -d)"
 tk_summary_append "$TMP" "20260606-120000" "90" "core-target" "FAIL (errors)" "88" "3" "core5"

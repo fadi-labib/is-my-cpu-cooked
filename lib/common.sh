@@ -17,6 +17,14 @@ tk_preferred_cpus() {
 tk_detect_preferred_cpus() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_preferred_cpus; }
 
 # tk_scan_log <tool> <logfile> -> echoes matched FAIL lines; rc 0=clean, 1=errors found.
+# tk_overall_verdict <errcount> <maxpkg> <thermal_threshold>
+tk_overall_verdict() {
+  local errs="$1" pkg="$2" thr="$3"
+  if [ "${errs:-0}" -gt 0 ]; then echo "FAIL (errors)"; return; fi
+  if [ "${pkg:-0}" -ge "${thr:-95}" ]; then echo "THERMAL"; return; fi
+  echo "PASS"
+}
+
 # tk_summary_append <dir> <ts> <minutes> <tests> <verdict> <maxpkg> <errcount> <notes>
 tk_summary_append() {
   local dir="$1" ts="$2" min="$3" tests="$4" verdict="$5" pkg="$6" errs="$7" notes="$8"
