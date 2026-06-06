@@ -1,69 +1,193 @@
 # CPU Degradation Testkit
 
-Stress-test suite to prove or disprove **Intel i9-14900K degradation** for an
-Intel RMA. Targets the suspect 6.0 GHz preferred core (logical CPU 11 = physical
-core 5) where two kernel `BUG()`s occurred at light load.
+A Linux stress-test suite that proves or disproves **Intel Raptor Lake
+(13th/14th-gen) Vmin-shift degradation** — the hardware defect that causes
+random crashes, kernel BUGs, and silent compute errors under ordinary
+workloads. It auto-detects the suspect preferred/fastest-boosting core on your
+CPU and applies targeted single-thread pressure where the defect shows most
+clearly.
 
-See `docs/specs/2026-06-06-cpu-degradation-testkit-design.md` for the full rationale.
+See `docs/specs/2026-06-06-cpu-degradation-testkit-design.md` for the full
+technical rationale.
 
-## ⚠️ Read first — the confounder
+---
 
-A FAIL only means *the CPU* if the platform is at stock. **Before trusting any
-FAIL:** in BIOS set **Intel Default Settings** and **disable XMP/EXPO**.
-Otherwise a failure may be the motherboard over-volting or unstable RAM OC.
+## Is this for me?
 
-## Setup (once)
+**Symptoms that bring people here:**
 
-    ./setup.sh        # installs stress-ng/build-essential, vendors y-cruncher + mprime
+- Random application crashes or segmentation faults (SIGSEGV / signal 11)
+- `internal compiler error` when building software
+- Kernel BUG() / Oops in dmesg at light load (not during heavy all-core work)
+- Game shader-compile crashes
+- Python, Firefox, or other apps faulting for no obvious reason
 
-## Run
+**Affected CPUs:** Intel 13th-gen (Raptor Lake) and 14th-gen (Raptor Lake
+Refresh) Core i5, i7, and i9 desktop/laptop processors. Look for a model
+number in the range i5-13xxx, i5-14xxx, i7-13xxx, i7-14xxx, i9-13xxx,
+i9-14xxx.
 
-    ./run-all.sh                                  # all tests, 90 min each
-    ./run-all.sh --tests core-target,core-sweep   # just the targeted detectors
-    ./run-all.sh --minutes 15                       # quick smoke
-    ./run-all.sh --minutes 480                      # overnight soak
-    ./run-all.sh --loops 5                          # repeat the battery 5×
-    ./run-all.sh --volts                            # also log per-core MHz/voltage
+**Platform:** Linux only. The kit is a set of bash scripts and uses
+`stress-ng`, `y-cruncher`, and `mprime` (Prime95). Windows users should run
+OCCT, y-cruncher, or Prime95 directly.
+
+---
+
+## Why single-core, light-load tests?
+
+The Vmin-shift defect lowers the minimum voltage a core needs to operate
+correctly. At full all-core Turbo the board applies the normal high voltage and
+the chip looks fine. At light single-core boost — exactly the condition most
+everyday apps hit — the voltage applied is too low for a degraded core, causing
+transient faults. This kit pins each test to the highest-boosting (preferred)
+core(s) detected on your CPU to trigger that condition deliberately.
+
+---
+
+## Step 0 — eliminate the confounder (important)
+
+A FAIL only indicts *the CPU* if the platform is at stock.
+
+**In BIOS before running any test: set Intel Default Settings and disable
+XMP / EXPO.** A motherboard voltage offset, undervolting, or unstable RAM
+overclock can produce identical symptoms. Remove those variables first, then
+run the kit. If you re-enable them and failures return, that is still the CPU
+(the degraded Vmin cannot handle non-default conditions the chip was once
+perfectly stable on).
+
+---
+
+## Quickstart
+
+```bash
+./setup.sh        # once: installs stress-ng/build-essential, downloads y-cruncher + mprime
+./run-all.sh      # full battery, 90 min per test
+```
+
+Common options:
+
+```bash
+./run-all.sh --tests core-target,core-sweep   # targeted detectors only
+./run-all.sh --minutes 15                      # quick smoke (not conclusive)
+./run-all.sh --minutes 480                     # overnight soak
+./run-all.sh --loops 5                         # repeat the battery 5×
+./run-all.sh --volts                           # also log per-core MHz / voltage
+```
 
 Monitor temps live in another terminal:
 
-    watch -n2 'sensors | grep -E "Package|Core"'
+```bash
+watch -n2 'sensors | grep -E "Package|Core"'
+```
+
+---
 
 ## Tests (priority order)
 
-| test | what it catches |
+| Test | What it catches |
 |------|-----------------|
-| core-target | single-thread pinned to suspect 6.0 GHz core — the Vmin-shift condition (headline) |
-| core-sweep | per-P-core, localizes which core(s) fail |
-| stress-ng | all/single-core, result verification |
-| y-cruncher | all-core self-verifying math |
-| compile | real-world segfault / internal compiler error |
-| prime95 | Small-FFT torture, rounding/hardware errors |
+| core-target | Single-thread pinned to the auto-detected preferred (highest-boosting) core — the Vmin-shift headline test |
+| core-sweep | Per-P-core sweep; localises which specific core(s) fail |
+| stress-ng | All-core and single-core with result verification |
+| y-cruncher | All-core self-verifying extended-precision arithmetic |
+| compile | Real-world workload: triggers `internal compiler error` / segfault regressions |
+| prime95 | Small-FFT torture; catches rounding errors and hardware faults |
+
+The preferred core is auto-detected from `lscpu` (the logical CPU(s) with the
+highest MAXMHZ). It is not hard-coded to any particular CPU number.
+
+---
 
 ## Reading results
 
-- `results/SUMMARY.md` — one row per run (verdict, max temp, errors).
-- `results/runs.csv` — same, machine-readable for trends.
-- `results/<timestamp>/` — full logs, temps, sysinfo, verdict for one run.
-- `results/crashes.log` — real desktop kernel BUGs caught by the watcher.
+```
+results/SUMMARY.md          one row per run (verdict, max temp, errors)
+results/runs.csv             same data, machine-readable
+results/<timestamp>/         full logs, temps, sysinfo, verdict for each run
+results/crashes.log          real-desktop kernel BUGs caught by the watcher
+results/userspace-traps.log  userspace SIGSEGV / trap events
+```
 
-Verdicts: `PASS` · `FAIL (errors)` · `THERMAL` (>95 °C, cooling not chip) ·
-`CRASHED (reset)` (machine hard-reset mid-test; recorded on next launch).
+Verdicts:
 
-## Catch real crashes automatically
+| Verdict | Meaning |
+|---------|---------|
+| `PASS` | No errors detected in this run |
+| `FAIL (errors)` | Compute errors or process faults detected — strong signal |
+| `THERMAL` | Peak package temp >= 95 °C; check cooling before blaming the CPU |
+| `CRASHED (reset)` | Machine hard-reset mid-test; recorded on next launch |
 
-    ./watcher/install-watcher.sh   # user systemd unit: scans journal each boot
+---
 
-## Control experiment (decisive)
+## Generating an RMA report
 
-If you drop the CPU a notch (disable Turbo, small negative voltage offset, or
-lower max multiplier in BIOS) and crashes stop, that is strong degradation
-proof — a healthy chip holds rated clocks; a degraded one is stable only slowed.
-Run with `--volts` to capture clocks during tests.
+After one or more runs:
 
-## What a result means
+```bash
+./report.sh
+```
 
-- Reproducible FAIL on `core-target` at Intel defaults → conclusive → RMA.
-- `core-sweep` failing only on specific cores → degradation localized + pinpointed.
-- Long string of PASSes → reassuring but never fully clears (degradation is
-  intermittent); keep the watcher running on real-use crashes.
+This bundles sysinfo, the runs table, verdict tally, and any captured kernel /
+userspace fault logs into `results/RMA-REPORT.md` — ready to attach to an
+Intel support ticket.
+
+---
+
+## Catching real crashes automatically (recommended)
+
+Install the boot-time watcher to capture kernel BUGs and userspace traps from
+your normal desktop usage:
+
+```bash
+./watcher/install-watcher.sh
+```
+
+This installs a user-level systemd unit that scans the journal each boot and
+appends new faults to `results/crashes.log` and `results/userspace-traps.log`.
+Real-world fault evidence is often more persuasive than synthetic test results.
+
+---
+
+## RMA guidance
+
+Intel has publicly acknowledged the defect and extended the warranty on
+affected processors to **5 years from purchase date**. Degraded chips are
+eligible for **replacement or refund** regardless of whether they are still
+within the original 3-year warranty.
+
+The 0x12B+ microcode update (released late 2023) changes the power limits to
+prevent further degradation, but **it does not reverse damage already done**. A
+chip that crashes before the microcode update will still crash after it, just
+at a lower all-core boost clock.
+
+Steps:
+1. Run this kit and collect `results/RMA-REPORT.md` (`./report.sh`).
+2. Note your purchase proof (receipt, Amazon/Newegg order).
+3. Open a case at **https://www.intel.com/content/www/us/en/support/contact-support.html**
+4. Attach the report and describe the real-world crash symptoms.
+
+---
+
+## Control experiment (for extra confidence)
+
+If you drop the CPU a notch — disable Turbo, apply a small negative voltage
+offset, or lower the max multiplier in BIOS — and crashes stop, that is strong
+independent degradation proof: a healthy chip is stable at rated clocks; a
+degraded one is only stable when slowed. Run with `--volts` to capture clock
+speeds during tests.
+
+---
+
+## Safety disclaimer
+
+Stress testing drives the CPU to sustained high power and temperature. Ensure
+your cooler is properly seated and capable. Do not run extended tests (>90 min)
+if you are already seeing thermal throttling under normal use. Results above
+95 °C package temperature are flagged THERMAL and are not attributable to CPU
+defects — fix the cooling first.
+
+**Use at your own risk.** This kit is provided as-is under the MIT License.
+
+---
+
+MIT License — Copyright (c) 2026 Fadi Labib
