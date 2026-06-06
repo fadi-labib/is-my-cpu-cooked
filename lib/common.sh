@@ -17,6 +17,15 @@ tk_preferred_cpus() {
 tk_detect_preferred_cpus() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_preferred_cpus; }
 
 # tk_scan_log <tool> <logfile> -> echoes matched FAIL lines; rc 0=clean, 1=errors found.
+# tk_max_temp <temps.log> -> integer max "Package id 0" temperature (Celsius), or 0.
+tk_max_temp() {
+  local log="$1"
+  [ -f "$log" ] || { echo 0; return; }
+  grep "Package id 0" "$log" \
+    | sed -E 's/^[^+]*\+([0-9]+)\.[0-9]+°C.*/\1/' \
+    | sort -rn | head -1 | grep -E '^[0-9]+$' || echo 0
+}
+
 tk_scan_log() {
   local tool="$1" log="$2" pat
   [ -f "$log" ] || { echo "MISSING LOG: $log"; return 1; }

@@ -14,6 +14,9 @@ FX="$HERE/fixtures"
 assert_eq "$(tk_preferred_cpus < "$FX/lscpu-e.txt")" "8 9 10 11" \
   "tk_preferred_cpus lists the 6.0GHz logical CPUs"
 
+# --- tk_max_temp ---
+assert_eq "$(tk_max_temp "$FX/temps.log")" "96" "tk_max_temp finds peak package temp"
+
 # --- tk_scan_log: 0=clean 1=errors ---
 tk_scan_log ycruncher "$FX/ycruncher-ok.log" >/dev/null; assert_rc $? 0 "ycruncher ok log = clean"
 tk_scan_log ycruncher "$FX/ycruncher-fail.log" >/dev/null; assert_rc $? 1 "ycruncher fail log = error"
