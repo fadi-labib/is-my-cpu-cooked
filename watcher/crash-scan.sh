@@ -7,7 +7,7 @@ RESULTS="$HERE/../results"; mkdir -p "$RESULTS"
 OUT="$RESULTS/crashes.log"; STATE="$RESULTS/.crash-scan-state"
 PAT="kernel BUG at|invalid opcode|general protection|Kernel panic|Oops"
 last="$(cat "$STATE" 2>/dev/null || echo '')"
-hits="$(journalctl -k --no-pager -b all 2>/dev/null | grep -E "$PAT" || true)"
+hits="$(journalctl -k --no-pager -b all 2>/dev/null | grep -E "$PAT" | grep -vE 'traps:' || true)"
 [ -z "$hits" ] && { echo "no kernel crash signatures found"; exit 0; }
 # Append only lines not already recorded.
 new=0
