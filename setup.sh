@@ -8,7 +8,7 @@ mkdir -p "$VENDOR"
 YCRUNCHER_VER="0.8.5.9545"
 YCRUNCHER_URL="https://github.com/Mysticial/y-cruncher/releases/download/${YCRUNCHER_VER}/y-cruncher.v${YCRUNCHER_VER}.tar.xz"
 MPRIME_VER="30.19"
-MPRIME_URL="https://www.mersenne.org/download/software/v30/30.19/p95v3019b20.linux64.tar.gz"
+MPRIME_URL="https://www.mersenne.org/download/software/v30/${MPRIME_VER}/p95v3019b20.linux64.tar.gz"
 
 # ── download integrity helpers ────────────────────────────────────────────────
 #
@@ -103,7 +103,8 @@ install_packages() {
 install_packages
 
 echo "==> y-cruncher"
-if [ ! -x "$VENDOR"/y-cruncher*/y-cruncher ]; then
+yc_bin="$(ls "$VENDOR"/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
+if [ -z "$yc_bin" ] || [ ! -x "$yc_bin" ]; then
   curl -fL "$YCRUNCHER_URL" -o /tmp/yc.tar.xz
   verify_archive /tmp/yc.tar.xz "y-cruncher"
   tar -xf /tmp/yc.tar.xz -C "$VENDOR"
