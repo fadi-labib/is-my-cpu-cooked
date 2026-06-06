@@ -5,6 +5,19 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 . "$HERE/lib/common.sh"
 RESULTS="$HERE/results"; mkdir -p "$RESULTS"
 
+MODEL="$(tk_cpu_model)"
+echo "CPU: $MODEL | preferred cores: $(tk_detect_preferred_cpus) | microcode: $(grep -m1 microcode /proc/cpuinfo | awk '{print $3}')"
+if ! tk_is_affected_intel "$MODEL"; then
+  echo "WARNING: '$MODEL' is not a 13th/14th-gen Intel Core i5/i7/i9."
+  echo "This kit targets Intel Raptor Lake Vmin-shift degradation; results may not be meaningful on your CPU."
+  if [ -t 0 ]; then
+    printf "Continue anyway? [y/N] "
+    read -r ans; case "$ans" in y|Y) ;; *) echo "aborted."; exit 0;; esac
+  else
+    echo "(non-interactive: continuing)"
+  fi
+fi
+
 TESTS="core-target,core-sweep,stress-ng,y-cruncher,compile,prime95"
 MINUTES=90; LOOPS=1; VOLTS=0; THERMAL=95
 while [ $# -gt 0 ]; do

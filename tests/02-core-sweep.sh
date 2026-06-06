@@ -12,12 +12,8 @@ LOG="$RUN_DIR/core-sweep.log"
 YC="$(ls "$VENDOR"/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
 [ -x "$YC" ] || { echo "y-cruncher not found — run setup.sh" > "$LOG"; exit 2; }
 
-# P-cores = one logical thread per physical core, MAXMHZ >= 5700. Preferred first.
-mapfile -t PREF < <(tk_detect_preferred_cpus | tr ' ' '\n')
-# all P-core first-threads (even logical indices 0..15 on this 14900K)
-PCORES=(0 2 4 6 8 10 12 14)
-ORDER=("${PREF[@]}")
-for c in "${PCORES[@]}"; do [[ " ${PREF[*]} " == *" $c "* ]] || ORDER+=("$c"); done
+mapfile -t ORDER < <(tk_detect_pcore_threads | tr ' ' '\n')
+[ "${#ORDER[@]}" -gt 0 ] || { echo "could not enumerate cores (lscpu failed?)" > "$LOG"; exit 2; }
 
 overall=0
 : > "$LOG"

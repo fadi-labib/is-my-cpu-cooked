@@ -14,6 +14,9 @@ FX="$HERE/fixtures"
 assert_eq "$(tk_preferred_cpus < "$FX/lscpu-e.txt")" "8 9 10 11" \
   "tk_preferred_cpus lists the 6.0GHz logical CPUs"
 
+# --- tk_pcore_threads: one representative thread per physical core, fastest first ---
+assert_eq "$(tk_pcore_threads < "$FX/lscpu-e.txt")" "8 10 0 16" "tk_pcore_threads: one thread per core, fastest first"
+
 # --- tk_max_temp ---
 assert_eq "$(tk_max_temp "$FX/temps.log")" "96" "tk_max_temp finds peak package temp"
 
@@ -51,5 +54,12 @@ out="$(tk_scan_crashed "$TMP")"
 assert_eq "$(echo "$out" | grep -c CRASHED)" "1" "tk_scan_crashed finds 1 incomplete run"
 assert_eq "$(echo "$out" | grep -c core-target)" "1" "crash line names the in-progress test"
 rm -rf "$TMP"
+
+# --- tk_is_affected_intel ---
+tk_is_affected_intel "Intel(R) Core(TM) i9-14900K"; assert_rc $? 0 "14900K is affected"
+tk_is_affected_intel "Intel(R) Core(TM) i7-13700K"; assert_rc $? 0 "13700K is affected"
+tk_is_affected_intel "Intel(R) Core(TM) i5-12600K"; assert_rc $? 1 "12600K (12th gen) not affected"
+tk_is_affected_intel "AMD Ryzen 9 7950X";            assert_rc $? 1 "AMD not affected"
+tk_is_affected_intel "Intel(R) Core(TM) Ultra 9 285K"; assert_rc $? 1 "Core Ultra not affected"
 
 tk_test_summary

@@ -4,6 +4,22 @@
 
 tk_version() { echo "testkit-1.0"; }
 
+# Read `lscpu -e=CPU,CORE,MAXMHZ` text on stdin; echo ONE logical CPU per physical
+# core (the lowest-numbered thread of each core), ordered by MAXMHZ descending then
+# CPU ascending. This yields every physical core's representative thread, highest-
+# boosting (preferred) cores first — works on any Intel topology.
+tk_pcore_threads() {
+  awk '
+    NR>1 && $3 ~ /^[0-9.]+$/ {
+      core=$2; cpu=$1; mhz=$3+0
+      if (!(core in seen) || cpu < rep[core]) { rep[core]=cpu; rmhz[core]=mhz; seen[core]=1 }
+    }
+    END { for (c in rep) printf "%d %d\n", rmhz[c], rep[c] }
+  ' | sort -k1,1nr -k2,2n | awk '{print $2}' | tr "\n" " " | sed "s/ $//"
+}
+# Impure wrapper used by scripts:
+tk_detect_pcore_threads() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_pcore_threads; }
+
 # Read `lscpu -e=CPU,CORE,MAXMHZ` text on stdin; echo the logical CPU numbers
 # whose MAXMHZ equals the global max (the preferred / fastest-boosting cores).
 tk_preferred_cpus() {
@@ -111,3 +127,12 @@ tk_volts_sampler_start() {
   TK_VOLTS_PID=$!
 }
 tk_volts_sampler_stop() { [ -n "$TK_VOLTS_PID" ] && kill "$TK_VOLTS_PID" 2>/dev/null; TK_VOLTS_PID=""; }
+
+# tk_cpu_model -> the CPU model-name string.
+tk_cpu_model() { grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^[[:space:]]*//'; }
+# tk_is_affected_intel <model-name-string> -> rc 0 if it is a 13th/14th-gen Intel Core
+# i5/i7/i9 (the Raptor Lake / Raptor Lake Refresh chips affected by the Vmin-shift
+# degradation), else rc 1. Pure (takes the string as $1).
+tk_is_affected_intel() {
+  printf '%s\n' "$1" | grep -qE 'Core.*i[579]-1[34][0-9]{3}'
+}
