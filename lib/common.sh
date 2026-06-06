@@ -15,3 +15,18 @@ tk_preferred_cpus() {
 
 # Convenience wrapper used by scripts (impure — calls lscpu).
 tk_detect_preferred_cpus() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_preferred_cpus; }
+
+# tk_scan_log <tool> <logfile> -> echoes matched FAIL lines; rc 0=clean, 1=errors found.
+tk_scan_log() {
+  local tool="$1" log="$2" pat
+  [ -f "$log" ] || { echo "MISSING LOG: $log"; return 1; }
+  case "$tool" in
+    stress-ng)  pat='fail:|verification failed|verify' ;;
+    ycruncher)  pat='[Ee]rror|mismatch|[Cc]oefficient|unstable' ;;
+    compile)    pat='internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' ;;
+    prime95)    pat='FATAL ERROR|[Rr]ounding|[Hh]ardware failure' ;;
+    *)          pat='[Ee]rror|FATAL|fail' ;;
+  esac
+  if grep -nE "$pat" "$log"; then return 1; fi
+  return 0
+}
