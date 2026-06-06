@@ -68,8 +68,9 @@ Common options:
 
 ```bash
 ./run-all.sh --tests core-target,core-sweep   # targeted detectors only
-./run-all.sh --minutes 15                      # quick smoke (not conclusive)
-./run-all.sh --minutes 480                     # overnight soak
+./run-all.sh --quick                           # preset: 15 min smoke (not conclusive)
+./run-all.sh --soak                            # preset: 8-hour overnight soak
+./run-all.sh --minutes 15                      # custom duration (overrides preset if given after)
 ./run-all.sh --loops 5                         # repeat the battery 5×
 ./run-all.sh --volts                           # also log per-core MHz / voltage
 ```

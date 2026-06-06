@@ -22,10 +22,12 @@ TESTS="core-target,core-sweep,stress-ng,y-cruncher,compile,prime95"
 MINUTES=90; LOOPS=1; VOLTS=0; THERMAL=95
 while [ $# -gt 0 ]; do
   case "$1" in
-    --tests) TESTS="$2"; shift 2;;
+    --tests)   TESTS="$2"; shift 2;;
     --minutes) MINUTES="$2"; shift 2;;
-    --loops) LOOPS="$2"; shift 2;;
-    --volts) VOLTS=1; shift;;
+    --quick)   MINUTES=15; shift;;
+    --soak)    MINUTES=480; shift;;
+    --loops)   LOOPS="$2"; shift 2;;
+    --volts)   VOLTS=1; shift;;
     *) echo "unknown arg: $1"; exit 1;;
   esac
 done
@@ -80,7 +82,7 @@ run_once() {
   echo "$verdict (errors=$errs maxpkg=${maxpkg}C tests: $ran)" > "$dir/verdict.txt"
   tk_mark_finished "$dir"
   tk_summary_append "$RESULTS" "$ts" "$MINUTES" "${ran% }" "$verdict" "$maxpkg" "$errs" "-"
-  echo "==> $verdict | logs: $dir | summary: $RESULTS/SUMMARY.md"
+  echo "==> $(tk_color "$verdict") | logs: $dir | summary: $RESULTS/SUMMARY.md"
 }
 
 for i in $(seq 1 "$LOOPS"); do echo "===== loop $i/$LOOPS ====="; run_once; done

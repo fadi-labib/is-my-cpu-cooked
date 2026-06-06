@@ -136,3 +136,14 @@ tk_cpu_model() { grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^[[
 tk_is_affected_intel() {
   printf '%s\n' "$1" | grep -qE 'Core.*i[579]-1[34][0-9]{3}'
 }
+
+# tk_color <verdict> -> prints verdict, ANSI-colored when stdout is a terminal.
+# Green=PASS, Yellow=THERMAL, Red=everything else (FAIL, CRASHED, ...).
+tk_color() {
+  [ -t 1 ] || { printf '%s' "$1"; return; }
+  case "$1" in
+    PASS)    printf '\033[32m%s\033[0m' "$1";;
+    THERMAL) printf '\033[33m%s\033[0m' "$1";;
+    *)       printf '\033[31m%s\033[0m' "$1";;
+  esac
+}
