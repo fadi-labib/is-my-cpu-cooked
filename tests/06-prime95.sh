@@ -16,6 +16,6 @@ EOF
 # Menu input: 16 = Torture Test, 2 = Small FFTs, then run; timeout bounds it.
 timeout "${DURATION_MIN}m" bash -c 'printf "16\n2\nN\n" | "'"$MP"'" -t' >> "$LOG" 2>&1
 rc=$?; [ "$rc" = "124" ] && rc=0
-tk_scan_log prime95 "$LOG" >> "$LOG"; scan=$?
+tk_scan_log prime95 "$LOG" >/dev/null; scan=$?
 [ "$rc" -ne 0 ] && [ "$scan" -eq 0 ] && exit 2
 exit "$scan"

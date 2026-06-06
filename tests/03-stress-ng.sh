@@ -12,6 +12,6 @@ stress-ng --cpu 0 --cpu-method all --verify --metrics --timeout "${half}m" >> "$
 tk_mark_progress "$RUN_DIR" "stress-ng single-core"
 stress-ng --cpu 2 --cpu-method all --verify --metrics --timeout "${half}m" >> "$LOG" 2>&1; rc2=$?
 rc=0; { [ "$rc1" -ne 0 ] || [ "$rc2" -ne 0 ]; } && rc=1
-tk_scan_log stress-ng "$LOG" >> "$LOG"; scan=$?
+tk_scan_log stress-ng "$LOG" >/dev/null; scan=$?
 [ "$rc" -ne 0 ] && [ "$scan" -eq 0 ] && exit 2
 exit "$scan"

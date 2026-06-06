@@ -24,6 +24,6 @@ timeout "${DURATION_MIN}m" taskset -c "$TARGET" \
 rc=$?
 # timeout's 124 = ran full duration with no crash = success for a stress test.
 [ "$rc" = "124" ] && rc=0
-tk_scan_log ycruncher "$LOG" >> "$LOG"; scan=$?
+tk_scan_log ycruncher "$LOG" >/dev/null; scan=$?
 [ "$rc" -ne 0 ] && [ "$scan" -eq 0 ] && exit 2   # died abnormally, no error text
 exit "$scan"

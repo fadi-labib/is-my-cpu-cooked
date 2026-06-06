@@ -20,4 +20,4 @@ while [ "$(date +%s)" -lt "$end" ]; do
   make -j"$(nproc)" clean >> "$LOG" 2>&1
   if ! make -j"$(nproc)" >> "$LOG" 2>&1; then echo "BUILD FAILED pass $pass" >> "$LOG"; break; fi
 done
-tk_scan_log compile "$LOG" >> "$LOG"; exit $?
+tk_scan_log compile "$LOG" >/dev/null; exit $?

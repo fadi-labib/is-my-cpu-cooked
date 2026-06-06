@@ -11,6 +11,6 @@ tk_mark_progress "$RUN_DIR" "y-cruncher all-core"
 timeout "${DURATION_MIN}m" "$YC" config \
   <(printf 'StressTest { Duration: %s, AllocateLocal: true }\n' "$((DURATION_MIN*60))") >> "$LOG" 2>&1
 rc=$?; [ "$rc" = "124" ] && rc=0
-tk_scan_log ycruncher "$LOG" >> "$LOG"; scan=$?
+tk_scan_log ycruncher "$LOG" >/dev/null; scan=$?
 [ "$rc" -ne 0 ] && [ "$scan" -eq 0 ] && exit 2
 exit "$scan"
