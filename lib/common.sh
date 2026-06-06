@@ -97,3 +97,17 @@ tk_temp_sampler_stop() {
   [ -n "$TK_SAMPLER_PID" ] && kill "$TK_SAMPLER_PID" 2>/dev/null
   TK_SAMPLER_PID=""
 }
+
+TK_VOLTS_PID=""
+# tk_volts_sampler_start <run_dir> <interval> — logs per-core MHz (and voltage if available)
+tk_volts_sampler_start() {
+  local dir="$1" iv="${2:-5}"
+  ( while true; do
+      echo "== $(date '+%T') ==" >> "$dir/volts.log"
+      grep -E "^cpu MHz" /proc/cpuinfo | nl >> "$dir/volts.log"
+      sensors 2>/dev/null | grep -iE "vcore|vid|in0" >> "$dir/volts.log"
+      sleep "$iv"
+    done ) &
+  TK_VOLTS_PID=$!
+}
+tk_volts_sampler_stop() { [ -n "$TK_VOLTS_PID" ] && kill "$TK_VOLTS_PID" 2>/dev/null; TK_VOLTS_PID=""; }
