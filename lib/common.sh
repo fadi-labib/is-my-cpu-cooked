@@ -17,6 +17,22 @@ tk_preferred_cpus() {
 tk_detect_preferred_cpus() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_preferred_cpus; }
 
 # tk_scan_log <tool> <logfile> -> echoes matched FAIL lines; rc 0=clean, 1=errors found.
+# Markers — each fsync'd so they survive a hard reset.
+tk_mark_start()    { echo "started $(date '+%F %T')" > "$1/START"; sync "$1/START" 2>/dev/null || sync; }
+tk_mark_progress() { echo "$2 @ $(date '+%F %T')" > "$1/progress"; sync "$1/progress" 2>/dev/null || sync; }
+tk_mark_finished() { echo "finished $(date '+%F %T')" > "$1/FINISHED"; sync "$1/FINISHED" 2>/dev/null || sync; }
+
+# tk_scan_crashed <results_dir> -> one "CRASHED ..." line per run dir with START and no FINISHED.
+tk_scan_crashed() {
+  local results="$1" d prog
+  for d in "$results"/*/; do
+    [ -f "$d/START" ] || continue
+    [ -f "$d/FINISHED" ] && continue
+    prog="$(cat "$d/progress" 2>/dev/null || echo 'unknown test')"
+    echo "CRASHED (reset) — run $(basename "$d") died during: $prog"
+  done
+}
+
 # tk_max_temp <temps.log> -> integer max "Package id 0" temperature (Celsius), or 0.
 tk_max_temp() {
   local log="$1"

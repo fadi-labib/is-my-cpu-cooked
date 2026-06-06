@@ -24,4 +24,17 @@ tk_scan_log compile   "$FX/compile-fail.log"   >/dev/null; assert_rc $? 1 "compi
 tk_scan_log prime95   "$FX/prime95-fail.log"   >/dev/null; assert_rc $? 1 "prime95 FATAL = error"
 tk_scan_log stress-ng "$FX/stressng-fail.log"  >/dev/null; assert_rc $? 1 "stress-ng verify fail = error"
 
+# --- crash markers ---
+TMP="$(mktemp -d)"
+mkdir -p "$TMP/20260606-100000" "$TMP/20260606-110000"
+printf 'started 2026-06-06 10:00:00\n' > "$TMP/20260606-100000/START"
+printf 'core-target @ 2026-06-06 10:04:00\n' > "$TMP/20260606-100000/progress"
+# second run completed cleanly:
+printf 'started\n' > "$TMP/20260606-110000/START"
+printf 'done\n'    > "$TMP/20260606-110000/FINISHED"
+out="$(tk_scan_crashed "$TMP")"
+assert_eq "$(echo "$out" | grep -c CRASHED)" "1" "tk_scan_crashed finds 1 incomplete run"
+assert_eq "$(echo "$out" | grep -c core-target)" "1" "crash line names the in-progress test"
+rm -rf "$TMP"
+
 tk_test_summary
