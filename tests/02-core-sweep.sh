@@ -24,14 +24,16 @@ overall=0
 for cpu in "${ORDER[@]}"; do
   tk_mark_progress "$RUN_DIR" "core-sweep (cpu $cpu)"
   echo "=== sweep cpu $cpu (${SWEEP_MIN}m) $(date '+%T') ===" | tee -a "$LOG"
+  tmplog="$(mktemp)"
   timeout "${SWEEP_MIN}m" taskset -c "$cpu" \
     "$YC" config <(printf 'StressTest { Duration: %s, ThreadCount: 1, AllocateLocal: true }\n' "$((SWEEP_MIN*60))") \
-    >> "$LOG" 2>&1
+    >> "$tmplog" 2>&1
   rc=$?; [ "$rc" = "124" ] && rc=0
-  if ! tk_scan_log ycruncher "$LOG" >/dev/null || [ "$rc" -ne 0 ]; then
+  if ! tk_scan_log ycruncher "$tmplog" >/dev/null || [ "$rc" -ne 0 ]; then
     echo "  >> CPU $cpu FAILED" | tee -a "$LOG"; overall=1
   else
     echo "  >> CPU $cpu ok" | tee -a "$LOG"
   fi
+  cat "$tmplog" >> "$LOG"; rm -f "$tmplog"
 done
 exit "$overall"
