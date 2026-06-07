@@ -75,6 +75,30 @@ verdict_tally() {
   echo "| THERMAL | $thermal |"
 }
 
+# ── per-core attribution (which logical core produced errors) ────────────────
+# y-cruncher names the failing core ("Error(s) encountered on logical core N");
+# paired with the pinned target this shows fail/pass isolation between cores.
+core_attribution() {
+  local d log strip target fail reason verdict any=0
+  for d in "${RUN_DIRS[@]}"; do
+    log="$d/core-target.log"
+    [ -f "$log" ] || continue
+    if [ "$any" -eq 0 ]; then
+      echo "| run | target CPU(s) | verdict | error attribution |"
+      echo "| --- | --- | --- | --- |"
+      any=1
+    fi
+    strip="$(sed 's/\x1b\[[0-9;]*m//g' "$log")"
+    target="$(printf '%s\n' "$strip" | sed -n 's/.*logical CPU[s() ]*\([0-9,]*\) for .*/\1/p' | head -1)"
+    fail="$(printf '%s\n' "$strip" | grep -m1 -oE 'Error\(s\) encountered on logical core [0-9]+' || true)"
+    reason="$(printf '%s\n' "$strip" | grep -m1 -oE 'Checksum Mismatch|Redundancy Check Failed' || true)"
+    verdict="$(awk '{print $1; exit}' "$d/verdict.txt" 2>/dev/null || echo '-')"
+    echo "| $(basename "$d") | ${target:-?} | ${verdict:-?} | ${fail:-none}${reason:+ ($reason)} |"
+  done
+  [ "$any" -eq 0 ] && echo "no core-target runs recorded"
+  return 0
+}
+
 # ── fenced log block ──────────────────────────────────────────────────────────
 fenced_log() {
   local f="$1"
@@ -138,7 +162,15 @@ fenced_log() {
   echo "---"
   echo ""
 
-  # 4. Kernel faults
+  # 4. Per-core attribution
+  echo "## Per-core error attribution"
+  echo ""
+  core_attribution
+  echo ""
+  echo "---"
+  echo ""
+
+  # 5. Kernel faults
   echo "## Kernel faults"
   echo ""
   fenced_log "$RESULTS/crashes.log"
@@ -146,7 +178,7 @@ fenced_log() {
   echo "---"
   echo ""
 
-  # 5. Userspace faults
+  # 6. Userspace faults
   echo "## Userspace faults"
   echo ""
   fenced_log "$RESULTS/userspace-traps.log"
@@ -154,7 +186,7 @@ fenced_log() {
   echo "---"
   echo ""
 
-  # 6. Interpretation footer
+  # 7. Interpretation footer
   echo "## Interpretation"
   echo ""
   echo "A reproducible FAIL or CRASHED result obtained while the system BIOS is set to"

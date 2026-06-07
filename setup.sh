@@ -5,8 +5,10 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 VENDOR="$HERE/vendor"
 mkdir -p "$VENDOR"
 
-YCRUNCHER_VER="0.8.5.9545"
-YCRUNCHER_URL="https://github.com/Mysticial/y-cruncher/releases/download/${YCRUNCHER_VER}/y-cruncher.v${YCRUNCHER_VER}.tar.xz"
+# NOTE: not every release ships Linux binaries (some are "Windows Only") —
+# pin a tag that has a -static.tar.xz asset. Static build = no host-lib variance.
+YCRUNCHER_VER="0.8.7.9547"
+YCRUNCHER_URL="https://github.com/Mysticial/y-cruncher/releases/download/v${YCRUNCHER_VER}/y-cruncher.v${YCRUNCHER_VER}-static.tar.xz"
 MPRIME_VER="30.19"
 MPRIME_URL="https://www.mersenne.org/download/software/v30/${MPRIME_VER}/p95v3019b20.linux64.tar.gz"
 

@@ -22,4 +22,7 @@ while IFS= read -r line; do
 done <<< "$hits"
 echo "$(date '+%F %T')" > "$STATE"
 echo "recorded $new_k kernel-fault line(s), $new_u userspace-trap line(s)"
-[ "$new_k" -gt 0 ] && tk_summary_append "$RESULTS" "$(date +%Y%m%d-%H%M%S)" "-" "real-use" "CRASHED (kernel BUG)" "-" "$new_k" "see crashes.log"
+if [ "$new_k" -gt 0 ]; then
+  tk_summary_append "$RESULTS" "$(date +%Y%m%d-%H%M%S)" "-" "real-use" "CRASHED (kernel BUG)" "-" "$new_k" "see crashes.log"
+fi
+exit 0

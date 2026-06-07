@@ -90,7 +90,9 @@ tk_scan_log() {
   [ -f "$log" ] || { echo "MISSING LOG: $log"; return 1; }
   case "$tool" in
     stress-ng)  pat='fail:|verification failed|verify' ;;
-    ycruncher)  pat='[Ee]rror|mismatch|[Cc]oefficient|unstable' ;;
+    # NOTE: no bare '[Ee]rror' — y-cruncher's settings echo ("Stop on Error: Enabled")
+    # would false-positive every run. Real failures print "Failed" / "Exception".
+    ycruncher)  pat='Exception|Error [Cc]ode|mismatch|[Cc]oefficient|unstable|Failed' ;;
     compile)    pat='internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' ;;
     prime95)    pat='FATAL ERROR|[Rr]ounding|[Hh]ardware failure' ;;
     *)          pat='[Ee]rror|FATAL|fail' ;;
