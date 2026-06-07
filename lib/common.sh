@@ -130,6 +130,44 @@ tk_volts_sampler_start() {
 }
 tk_volts_sampler_stop() { [ -n "$TK_VOLTS_PID" ] && kill "$TK_VOLTS_PID" 2>/dev/null; TK_VOLTS_PID=""; }
 
+# tk_busy_cpus <stat_before> <stat_after> -> "cpuN <busy%>" per logical CPU.
+# busy% = share of jiffies not spent in idle/iowait between the two /proc/stat
+# snapshots. Pure (takes the snapshots as files).
+tk_busy_cpus() {
+  awk '
+    /^cpu[0-9]+ / {
+      cpu=$1; tot=0
+      for(i=2;i<=NF;i++) tot+=$i
+      idle=$5+$6
+      if (FNR==NR) { tot0[cpu]=tot; idle0[cpu]=idle }
+      else {
+        dt=tot-tot0[cpu]; di=idle-idle0[cpu]
+        pct = dt>0 ? int(100*(dt-di)/dt) : 0
+        print cpu, pct
+      }
+    }
+  ' "$1" "$2"
+}
+
+# tk_ab_interpret <suspect_verdict> <control_verdict> -> one-line conclusion.
+# Verdicts are runs.csv field 4; only the first word matters. THERMAL counts
+# as computationally clean: it means zero errors, package merely hit the
+# thermal threshold (both legs do that on an undersized cooler).
+tk_ab_interpret() {
+  local s="${1%% *}" c="${2%% *}" sbad=0 cbad=0
+  case "$s" in FAIL|CRASHED) sbad=1;; esac
+  case "$c" in FAIL|CRASHED) cbad=1;; esac
+  if   [ "$sbad" -eq 1 ] && [ "$cbad" -eq 0 ]; then
+    echo "DEFECT ISOLATED: suspect core fails, control core clean under identical load"
+  elif [ "$sbad" -eq 1 ] && [ "$cbad" -eq 1 ]; then
+    echo "SYSTEMIC: both cores fail — suspect cooling/board/RAM or chip-wide issue, not a single core"
+  elif [ "$sbad" -eq 0 ] && [ "$cbad" -eq 1 ]; then
+    echo "UNEXPECTED: control failed while suspect passed — re-check assumptions before concluding"
+  else
+    echo "NOT REPRODUCED: both cores clean this session — prior crash evidence stands; consider a longer run"
+  fi
+}
+
 # tk_cpu_model -> the CPU model-name string.
 tk_cpu_model() { grep -m1 'model name' /proc/cpuinfo | cut -d: -f2- | sed 's/^[[:space:]]*//'; }
 # tk_is_affected_intel <model-name-string> -> rc 0 if it is a 13th/14th-gen Intel Core

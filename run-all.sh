@@ -94,7 +94,7 @@ run_once() {
   local verdict; verdict="$(tk_overall_verdict "$errs" "$maxpkg" "$THERMAL")"
   echo "$verdict (errors=$errs maxpkg=${maxpkg}C tests: $ran)" > "$dir/verdict.txt"
   tk_mark_finished "$dir"
-  tk_summary_append "$RESULTS" "$ts" "$MINUTES" "${ran% }" "$verdict" "$maxpkg" "$errs" "-"
+  tk_summary_append "$RESULTS" "$ts" "$MINUTES" "${ran% }" "$verdict" "$maxpkg" "$errs" "${TK_NOTES:--}"
   echo "==> $(tk_color "$verdict") | logs: $dir | summary: $RESULTS/SUMMARY.md"
 }
 

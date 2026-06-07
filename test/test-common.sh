@@ -88,4 +88,27 @@ tk_is_affected_intel "Intel(R) Core(TM) i5-12600K"; assert_rc $? 1 "12600K (12th
 tk_is_affected_intel "AMD Ryzen 9 7950X";            assert_rc $? 1 "AMD not affected"
 tk_is_affected_intel "Intel(R) Core(TM) Ultra 9 285K"; assert_rc $? 1 "Core Ultra not affected"
 
+# --- tk_busy_cpus: per-CPU busy% from two /proc/stat snapshots ---
+assert_eq "$(tk_busy_cpus "$FX/proc-stat-before.txt" "$FX/proc-stat-after.txt")" \
+"cpu0 0
+cpu10 100
+cpu11 50" "tk_busy_cpus computes idle/full/half busy"
+
+# --- tk_ab_interpret: A/B verdict semantics ---
+assert_eq "$(tk_ab_interpret 'FAIL (errors)' 'THERMAL')" \
+  "DEFECT ISOLATED: suspect core fails, control core clean under identical load" \
+  "ab: suspect fail + control thermal-clean = isolated"
+assert_eq "$(tk_ab_interpret 'CRASHED (reset)' 'PASS')" \
+  "DEFECT ISOLATED: suspect core fails, control core clean under identical load" \
+  "ab: suspect crash + control pass = isolated"
+assert_eq "$(tk_ab_interpret 'FAIL (errors)' 'FAIL (errors)')" \
+  "SYSTEMIC: both cores fail — suspect cooling/board/RAM or chip-wide issue, not a single core" \
+  "ab: both fail = systemic"
+assert_eq "$(tk_ab_interpret 'PASS' 'CRASHED (reset)')" \
+  "UNEXPECTED: control failed while suspect passed — re-check assumptions before concluding" \
+  "ab: control-only fail = unexpected"
+assert_eq "$(tk_ab_interpret 'THERMAL' 'PASS')" \
+  "NOT REPRODUCED: both cores clean this session — prior crash evidence stands; consider a longer run" \
+  "ab: both clean = not reproduced"
+
 tk_test_summary
