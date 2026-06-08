@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# imcc — single front door for the is-my-cpu-cooked kit.
+# Dispatches to libexec/ scripts (and the watcher), or prints inline guidance.
+set -u
+HERE="$(cd "$(dirname "$0")" && pwd)"
+
+INTEL_SUPPORT_URL="https://www.intel.com/content/www/us/en/support/contact-support.html"
+
+usage() {
+  cat <<EOF
+is-my-cpu-cooked — is your Intel chip toast?
+
+usage: ./imcc <command> [options]
+
+  setup      install tools (run once)
+  check      verify BIOS baseline (sudo for full RAM/XMP check)
+  run        run the stress test            <- most people start here
+  ab         suspect-vs-control A/B protocol
+  report     build the RMA report bundle
+  watch      install the background crash scanner
+  warranty   how to file an Intel warranty claim (RMA)
+  guide      explain the whole flow, start to finish
+  version    print the kit version
+  help       show this help
+
+New? start with:  ./imcc setup
+EOF
+}
+
+guide() {
+  cat <<EOF
+The flow, in order:
+
+  1. ./imcc setup          install stress-ng + download y-cruncher/mprime (once)
+  2. sudo ./imcc check     confirm BIOS is at stock (XMP off, microcode, power)
+  3. ./imcc run            run the stress battery   (or: ./imcc ab for A/B)
+  4. ./imcc report         bundle results into results/RMA-REPORT.md
+  5. ./imcc warranty       how to send that evidence to Intel for a replacement
+
+Tip: ./imcc run --quick is a 15-min smoke test; ./imcc run --soak is an 8-hour soak.
+EOF
+}
+
+warranty() {
+  cat <<EOF
+Filing an Intel warranty claim (RMA)
+
+Intel has acknowledged the Raptor Lake (13th/14th-gen) Vmin-shift defect and
+extended the warranty to 5 years from purchase — eligible for replacement or
+refund.
+
+Steps:
+  1. Generate the evidence bundle:   ./imcc report   (-> results/RMA-REPORT.md)
+  2. Have your purchase proof ready (receipt / order confirmation).
+  3. Open a support case:
+       $INTEL_SUPPORT_URL
+  4. Attach results/RMA-REPORT.md and describe the real-world symptoms
+     (crashes, kernel BUGs, compute errors).
+EOF
+  if [ ! -f "$HERE/results/RMA-REPORT.md" ]; then
+    echo
+    echo "Note: results/RMA-REPORT.md doesn't exist yet — run ./imcc report first."
+  fi
+}
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  setup)          exec "$HERE/libexec/setup.sh" "$@" ;;
+  check)          exec "$HERE/libexec/preflight.sh" "$@" ;;
+  run)            exec "$HERE/libexec/run-all.sh" "$@" ;;
+  ab)             exec "$HERE/libexec/ab-evidence.sh" "$@" ;;
+  report)         exec "$HERE/libexec/report.sh" "$@" ;;
+  watch)          exec "$HERE/watcher/install-watcher.sh" "$@" ;;
+  warranty|rma)   warranty ;;
+  guide)          guide ;;
+  version)
+    # shellcheck source=lib/common.sh
+    . "$HERE/lib/common.sh"
+    tk_version
+    ;;
+  help|-h|--help) usage ;;
+  *)              echo "imcc: unknown command '$cmd'" >&2; echo >&2; usage >&2; exit 2 ;;
+esac
