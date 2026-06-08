@@ -132,14 +132,13 @@ tk_failure_banner() {
 # Returns 0 if the stream ends with no match. Pure w.r.t. process control (no
 # killing) — the caller owns that.
 tk_watch_stream() {
-  local log="$1" set="$2" pat line l2 core="" hit=0
+  local log="$1" set="$2" pat line l2 core=""
   pat="$(tk_sig_pattern "$set")"
   while IFS= read -r line || [ -n "$line" ]; do
     printf '%s\n' "$line" >> "$log"
     printf '%s\n' "$line"
     [ -z "$core" ] && core="$(tk_extract_core "$line")"
     if printf '%s\n' "$line" | grep -qE "$pat"; then
-      hit=1
       while IFS= read -r -t 2 l2; do
         printf '%s\n' "$l2" >> "$log"
         printf '%s\n' "$l2"
@@ -149,7 +148,6 @@ tk_watch_stream() {
       return 1
     fi
   done
-  [ "$hit" -eq 1 ] && return 1
   return 0
 }
 
