@@ -37,7 +37,8 @@ rm -f "$tmplog"
 tmplog="$(mktemp)"; marker="$(mktemp -u)"
 tk_run_watched "$tmplog" ycruncher -- bash "$FX/fake-failing-tool.sh" "$marker" >/dev/null; rc=$?
 assert_rc "$rc" 1 "run_watched returns 1 on detected error"
-[ -f "$marker" ]; assert_rc $? 1 "run_watched killed the tool before its 30s sleep finished"
+if [ -f "$marker" ]; then mk="exists"; else mk="absent"; fi
+assert_eq "$mk" "absent" "run_watched killed the tool before its 30s sleep finished"
 assert_eq "$(grep -c 'Coefficient mismatch' "$tmplog")" "1" "run_watched logged the failing output"
 rm -f "$tmplog" "$marker"
 
