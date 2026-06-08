@@ -28,3 +28,6 @@ jobs:
 
       - name: Unit tests (test/test-watchdog.sh)
         run: bash test/test-watchdog.sh
+
+      - name: Unit tests (test/test-imcc.sh)
+        run: bash test/test-imcc.sh
