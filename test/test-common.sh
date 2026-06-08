@@ -114,7 +114,7 @@ assert_eq "$(tk_ab_interpret 'THERMAL' 'PASS')" \
 # --- tk_sig_pattern: shared error regex per tool set ---
 assert_eq "$(tk_sig_pattern prime95)" 'FATAL ERROR|[Rr]ounding|[Hh]ardware failure' "sig prime95"
 assert_eq "$(tk_sig_pattern stress-ng)" 'fail:|verification failed|verify' "sig stress-ng"
-assert_eq "$(tk_sig_pattern ycruncher)" 'logical core|Error [Cc]ode|mismatch|[Cc]oefficient|unstable| Failed' "sig ycruncher"
+assert_eq "$(tk_sig_pattern ycruncher)" 'Exception|Error [Cc]ode|mismatch|[Cc]oefficient|unstable|Failed' "sig ycruncher"
 assert_eq "$(tk_sig_pattern compile)" 'internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' "sig compile"
 assert_eq "$(tk_sig_pattern anything-else)" '[Ee]rror|FATAL|fail' "sig default fallback"
 

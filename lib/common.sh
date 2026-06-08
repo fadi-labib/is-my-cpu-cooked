@@ -92,7 +92,7 @@ tk_max_temp() {
 tk_sig_pattern() {
   case "$1" in
     stress-ng)  echo 'fail:|verification failed|verify' ;;
-    ycruncher)  echo 'logical core|Error [Cc]ode|mismatch|[Cc]oefficient|unstable| Failed' ;;
+    ycruncher)  echo 'Exception|Error [Cc]ode|mismatch|[Cc]oefficient|unstable|Failed' ;;
     compile)    echo 'internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' ;;
     prime95)    echo 'FATAL ERROR|[Rr]ounding|[Hh]ardware failure' ;;
     *)          echo '[Ee]rror|FATAL|fail' ;;
@@ -124,22 +124,32 @@ tk_failure_banner() {
 }
 
 # tk_watch_stream <logfile> <tool-set> : reads lines on stdin, appends each to
-# <logfile> AND echoes it (live passthrough), and on the FIRST line matching the
-# tool's signature prints a failure banner and returns 1. Returns 0 if the stream
-# ends with no match. Pure w.r.t. process control (no killing) — the caller owns
-# that. Testable by piping a canned log in.
+# <logfile> AND echoes it (live passthrough). On the FIRST line matching the
+# tool's signature it keeps draining the immediate error burst (bounded by a 2s
+# read timeout so a post-error hang can't block the watchdog) so the full block —
+# including the "logical core N" attribution line that often follows — lands in
+# the log, then prints a failure banner naming the core (if found) and returns 1.
+# Returns 0 if the stream ends with no match. Pure w.r.t. process control (no
+# killing) — the caller owns that.
 tk_watch_stream() {
-  local log="$1" set="$2" pat line core
+  local log="$1" set="$2" pat line l2 core="" hit=0
   pat="$(tk_sig_pattern "$set")"
   while IFS= read -r line || [ -n "$line" ]; do
     printf '%s\n' "$line" >> "$log"
     printf '%s\n' "$line"
+    [ -z "$core" ] && core="$(tk_extract_core "$line")"
     if printf '%s\n' "$line" | grep -qE "$pat"; then
-      core="$(tk_extract_core "$line")"
+      hit=1
+      while IFS= read -r -t 2 l2; do
+        printf '%s\n' "$l2" >> "$log"
+        printf '%s\n' "$l2"
+        [ -z "$core" ] && core="$(tk_extract_core "$l2")"
+      done
       tk_failure_banner "$set" "$line" "$core"
       return 1
     fi
   done
+  [ "$hit" -eq 1 ] && return 1
   return 0
 }
 
