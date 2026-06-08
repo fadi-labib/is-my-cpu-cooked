@@ -161,20 +161,29 @@ tk_watch_stream() {
 tk_run_watched() {
   local log="$1" set="$2"; shift 2
   [ "${1:-}" = "--" ] && shift
-  local fifo cmdpid detected=0 rc
-  fifo="$(mktemp -u)"; mkfifo "$fifo" || return 2
+  local tmpdir fifo cmdpid detected=0 rc=0 killer
+  # Dedicated dir avoids the mktemp -u TOCTOU on the FIFO path.
+  tmpdir="$(mktemp -d)" || return 2
+  fifo="$tmpdir/w.fifo"
+  mkfifo "$fifo" || { rm -rf "$tmpdir"; return 2; }
   "$@" >"$fifo" 2>&1 </dev/null &
   cmdpid=$!
   tk_watch_stream "$log" "$set" < "$fifo" || detected=1
   if [ "$detected" -eq 1 ]; then
     kill -TERM "$cmdpid" 2>/dev/null
+    # Deferred hard-kill in case the tool ignores SIGTERM. Capture its PID and
+    # cancel it once the process is reaped, so a stray SIGKILL can't hit a reused
+    # PID later (this runs in process-heavy stress loops).
     ( sleep 3; kill -KILL "$cmdpid" 2>/dev/null ) >/dev/null 2>&1 &
+    killer=$!
     wait "$cmdpid" 2>/dev/null
-    rm -f "$fifo"
+    kill "$killer" 2>/dev/null
+    wait "$killer" 2>/dev/null
+    rm -rf "$tmpdir"
     return 1
   fi
   wait "$cmdpid"; rc=$?
-  rm -f "$fifo"
+  rm -rf "$tmpdir"
   [ "$rc" -ne 0 ] && return 2
   return 0
 }
