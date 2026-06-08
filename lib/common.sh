@@ -92,7 +92,7 @@ tk_max_temp() {
 tk_sig_pattern() {
   case "$1" in
     stress-ng)  echo 'fail:|verification failed|verify' ;;
-    ycruncher)  echo 'Exception|Error [Cc]ode|mismatch|[Cc]oefficient|unstable|Failed' ;;
+    ycruncher)  echo 'logical core|Error [Cc]ode|mismatch|[Cc]oefficient|unstable| Failed' ;;
     compile)    echo 'internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' ;;
     prime95)    echo 'FATAL ERROR|[Rr]ounding|[Hh]ardware failure' ;;
     *)          echo '[Ee]rror|FATAL|fail' ;;
@@ -120,6 +120,26 @@ tk_failure_banner() {
   echo "  signal:  $line"
   [ -n "$core" ]    && echo "  core:    logical CPU $core"
   [ -n "$elapsed" ] && echo "  elapsed: $elapsed"
+  return 0
+}
+
+# tk_watch_stream <logfile> <tool-set> : reads lines on stdin, appends each to
+# <logfile> AND echoes it (live passthrough), and on the FIRST line matching the
+# tool's signature prints a failure banner and returns 1. Returns 0 if the stream
+# ends with no match. Pure w.r.t. process control (no killing) — the caller owns
+# that. Testable by piping a canned log in.
+tk_watch_stream() {
+  local log="$1" set="$2" pat line core
+  pat="$(tk_sig_pattern "$set")"
+  while IFS= read -r line || [ -n "$line" ]; do
+    printf '%s\n' "$line" >> "$log"
+    printf '%s\n' "$line"
+    if printf '%s\n' "$line" | grep -qE "$pat"; then
+      core="$(tk_extract_core "$line")"
+      tk_failure_banner "$set" "$line" "$core"
+      return 1
+    fi
+  done
   return 0
 }
 

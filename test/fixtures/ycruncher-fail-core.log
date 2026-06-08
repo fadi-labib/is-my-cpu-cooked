@@ -1,0 +1,7 @@
+Allocating Memory...
+Running BKT:  Passed
+Running BBP:
+Exception Encountered: AlgorithmFailedException
+Checksum Mismatch
+Error(s) encountered on logical core 10.
+Running BBP: Failed
