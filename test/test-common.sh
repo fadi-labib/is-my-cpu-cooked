@@ -14,8 +14,16 @@ FX="$HERE/fixtures"
 assert_eq "$(tk_preferred_cpus < "$FX/lscpu-e.txt")" "8 9 10 11" \
   "tk_preferred_cpus lists the 6.0GHz logical CPUs"
 
-# --- tk_pcore_threads: one representative thread per physical core, fastest first ---
-assert_eq "$(tk_pcore_threads < "$FX/lscpu-e.txt")" "8 10 0 16" "tk_pcore_threads: one thread per core, fastest first"
+# --- tk_pcore_reps: one representative thread per P-core, fastest first, E-cores excluded ---
+assert_eq "$(tk_pcore_reps < "$FX/lscpu-e.txt")" "8 10 0" "tk_pcore_reps: P-core reps fastest-first, E-core (16) excluded"
+assert_eq "$(tk_pcore_reps < "$FX/lscpu-e-htoff.txt")" "2 3 0 1" "tk_pcore_reps: HT-off MAXMHZ fallback keeps P-tier, drops 4.4GHz E-cores"
+assert_eq "$(tk_pcore_reps < "$FX/lscpu-e-nonhybrid.txt")" "0 2" "tk_pcore_reps: non-hybrid HT chip = all cores are P-cores"
+
+# --- tk_parse_siblings: normalize a kernel thread_siblings_list to a comma pair ---
+assert_eq "$(tk_parse_siblings '10-11')" "10,11" "parse_siblings expands a dash range"
+assert_eq "$(tk_parse_siblings '10,11')" "10,11" "parse_siblings passes a comma list through"
+assert_eq "$(tk_parse_siblings '24')"    "24"    "parse_siblings: single core (E-core, no HT)"
+assert_eq "$(tk_parse_siblings '8-11')"  "8,9,10,11" "parse_siblings expands a 4-wide range"
 
 # --- tk_max_temp ---
 assert_eq "$(tk_max_temp "$FX/temps.log")" "96" "tk_max_temp finds peak package temp"

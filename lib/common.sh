@@ -4,21 +4,64 @@
 
 tk_version() { echo "testkit-1.0"; }
 
-# Read `lscpu -e=CPU,CORE,MAXMHZ` text on stdin; echo ONE logical CPU per physical
-# core (the lowest-numbered thread of each core), ordered by MAXMHZ descending then
-# CPU ascending. This yields every physical core's representative thread, highest-
-# boosting (preferred) cores first — works on any Intel topology.
-tk_pcore_threads() {
+# Read `lscpu -e=CPU,CORE,MAXMHZ` text on stdin; echo ONE representative logical
+# CPU per *P-core* (the lowest-numbered thread of each), ordered by MAXMHZ
+# descending then CPU ascending — highest-boosting cores first. E-cores are
+# EXCLUDED: the Vmin-shift defect is a P-core boost phenomenon.
+#   P-core detection: a CORE id with >=2 logical CPUs (SMT/HyperThreading).
+#   Fallback when no core has >=2 CPUs (HT disabled or non-hybrid): treat cores
+#   whose MAXMHZ is within 10% of the global max as P-cores (separates the high
+#   P-tier from the low E-tier on hybrid; on a uniform chip, all qualify).
+tk_pcore_reps() {
   awk '
     NR>1 && $3 ~ /^[0-9.]+$/ {
       core=$2; cpu=$1; mhz=$3+0
-      if (!(core in seen) || cpu < rep[core]) { rep[core]=cpu; rmhz[core]=mhz; seen[core]=1 }
+      cnt[core]++
+      if (!(core in seen) || cpu < rep[core]) { rep[core]=cpu; seen[core]=1 }
+      if (mhz > rmhz[core]) rmhz[core]=mhz
+      if (mhz > gmax) gmax=mhz
     }
-    END { for (c in rep) printf "%d %d\n", rmhz[c], rep[c] }
+    END {
+      ht=0; for (c in cnt) if (cnt[c]>=2) ht=1
+      for (c in rep) {
+        ispcore = ht ? (cnt[c]>=2) : (rmhz[c] >= 0.9*gmax)
+        if (ispcore) printf "%d %d\n", rmhz[c], rep[c]
+      }
+    }
   ' | sort -k1,1nr -k2,2n | awk '{print $2}' | tr "\n" " " | sed "s/ $//"
 }
-# Impure wrapper used by scripts:
-tk_detect_pcore_threads() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_pcore_threads; }
+# Impure wrapper: enumerate P-core reps from the live machine. Warns when the
+# HT-off MAXMHZ fallback is used (P/E split is then a best-effort guess).
+tk_detect_pcore_reps() {
+  local txt; txt="$(lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null)"
+  if ! printf '%s\n' "$txt" | awk 'NR>1{c[$2]++} END{for(k in c) if(c[k]>=2) f=1; exit !f}'; then
+    echo "warning: no SMT siblings detected — guessing P-cores by MAXMHZ tier (E-core exclusion may be imperfect)" >&2
+  fi
+  printf '%s\n' "$txt" | tk_pcore_reps
+}
+
+# tk_parse_siblings <list> -> normalize a kernel thread_siblings_list to a comma
+# pair, expanding dash ranges: "10-11"->"10,11", "10,11"->"10,11", "24"->"24". Pure.
+tk_parse_siblings() {
+  local part lo hi i out=""
+  local IFS=','
+  for part in $1; do
+    case "$part" in
+      *-*) lo="${part%-*}"; hi="${part#*-}"
+           for ((i=lo; i<=hi; i++)); do out="$out,$i"; done ;;
+      *)   out="$out,$part" ;;
+    esac
+  done
+  echo "${out#,}"
+}
+# tk_core_siblings <cpu> -> the SMT sibling pair of the physical core holding
+# logical CPU <cpu>, as a comma list (e.g. 11 -> "10,11"). Falls back to <cpu>
+# itself if topology is unreadable. Impure (reads /sys).
+tk_core_siblings() {
+  local f="/sys/devices/system/cpu/cpu$1/topology/thread_siblings_list"
+  [ -r "$f" ] || { echo "$1"; return; }
+  tk_parse_siblings "$(cat "$f")"
+}
 
 # Read `lscpu -e=CPU,CORE,MAXMHZ` text on stdin; echo the logical CPU numbers
 # whose MAXMHZ equals the global max (the preferred / fastest-boosting cores).
