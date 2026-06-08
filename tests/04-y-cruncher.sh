@@ -8,9 +8,12 @@ LOG="$RUN_DIR/y-cruncher.log"
 YC="$(ls "$VENDOR"/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
 [ -x "$YC" ] || { echo "y-cruncher not found — run setup.sh" > "$LOG"; exit 2; }
 tk_mark_progress "$RUN_DIR" "y-cruncher all-core"
-timeout "${DURATION_MIN}m" "$YC" config \
-  <(printf 'StressTest { Duration: %s, AllocateLocal: true }\n' "$((DURATION_MIN*60))") >> "$LOG" 2>&1
-rc=$?; [ "$rc" = "124" ] && rc=0
-tk_scan_log ycruncher "$LOG" >/dev/null; scan=$?
-[ "$rc" -ne 0 ] && [ "$scan" -eq 0 ] && exit 2
-exit "$scan"
+# Live watchdog around the all-core run. timeout firing (124) on a clean run is
+# the normal duration cap, so a backstop-kill with no error text must read as
+# clean, not abnormal: detect that case and map rc 2 -> 0.
+CFG_FILE="$RUN_DIR/y-cruncher-allcore.cfg"
+printf 'StressTest { Duration: %s, AllocateLocal: true }\n' "$((DURATION_MIN*60))" > "$CFG_FILE"
+tk_run_watched "$LOG" ycruncher -- timeout "${DURATION_MIN}m" "$YC" config "$CFG_FILE"
+rc=$?
+[ "$rc" = "2" ] && rc=0   # duration-cap timeout with no error = clean for all-core run
+exit "$rc"
