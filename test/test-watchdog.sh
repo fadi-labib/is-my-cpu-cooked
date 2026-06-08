@@ -33,4 +33,24 @@ assert_rc "$rc" 0 "watch_stream returns 0 on clean output"
 assert_eq "$(printf '%s\n' "$out" | grep -c 'CPU FAILURE DETECTED')" "0" "no banner on clean output"
 rm -f "$tmplog"
 
+# --- tk_run_watched: kills the tool on first error and returns 1 fast ---
+tmplog="$(mktemp)"; marker="$(mktemp -u)"
+tk_run_watched "$tmplog" ycruncher -- bash "$FX/fake-failing-tool.sh" "$marker" >/dev/null; rc=$?
+assert_rc "$rc" 1 "run_watched returns 1 on detected error"
+[ -f "$marker" ]; assert_rc $? 1 "run_watched killed the tool before its 30s sleep finished"
+assert_eq "$(grep -c 'Coefficient mismatch' "$tmplog")" "1" "run_watched logged the failing output"
+rm -f "$tmplog" "$marker"
+
+# clean tool -> rc 0
+tmplog="$(mktemp)"
+tk_run_watched "$tmplog" ycruncher -- bash "$FX/fake-clean-tool.sh" >/dev/null; rc=$?
+assert_rc "$rc" 0 "run_watched returns 0 when the tool exits clean"
+rm -f "$tmplog"
+
+# tool dies non-zero with no recognized error text -> rc 2 (abnormal)
+tmplog="$(mktemp)"
+tk_run_watched "$tmplog" ycruncher -- bash -c 'echo working; exit 3' >/dev/null; rc=$?
+assert_rc "$rc" 2 "run_watched returns 2 on abnormal exit with no error text"
+rm -f "$tmplog"
+
 tk_test_summary

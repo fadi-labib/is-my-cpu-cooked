@@ -151,6 +151,34 @@ tk_watch_stream() {
   return 0
 }
 
+# tk_run_watched <logfile> <tool-set> -- <command> [args...]
+# Runs <command> with stdin from /dev/null, streaming stdout+stderr through
+# tk_watch_stream (which tees to <logfile> and live-echoes). On the first error
+# signature it kills the command immediately and returns 1 — no waiting out a
+# timeout grace. Returns 0 on clean exit, 2 if the command exits non-zero with no
+# recognized error text (died abnormally). The matcher runs in THIS shell (via a
+# FIFO) so its result is captured directly.
+tk_run_watched() {
+  local log="$1" set="$2"; shift 2
+  [ "${1:-}" = "--" ] && shift
+  local fifo cmdpid detected=0 rc
+  fifo="$(mktemp -u)"; mkfifo "$fifo" || return 2
+  "$@" >"$fifo" 2>&1 </dev/null &
+  cmdpid=$!
+  tk_watch_stream "$log" "$set" < "$fifo" || detected=1
+  if [ "$detected" -eq 1 ]; then
+    kill -TERM "$cmdpid" 2>/dev/null
+    ( sleep 3; kill -KILL "$cmdpid" 2>/dev/null ) >/dev/null 2>&1 &
+    wait "$cmdpid" 2>/dev/null
+    rm -f "$fifo"
+    return 1
+  fi
+  wait "$cmdpid"; rc=$?
+  rm -f "$fifo"
+  [ "$rc" -ne 0 ] && return 2
+  return 0
+}
+
 tk_scan_log() {
   local tool="$1" log="$2" pat
   [ -f "$log" ] || { echo "MISSING LOG: $log"; return 1; }
