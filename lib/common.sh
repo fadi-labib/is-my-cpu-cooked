@@ -105,6 +105,24 @@ tk_extract_core() {
   printf '%s\n' "$1" | sed -nE 's/.*logical core ([0-9]+).*/\1/p' | head -1
 }
 
+# tk_failure_banner <tool-set> <signal-line> <core> [elapsed] -> prints a loud,
+# bordered failure banner. ASCII box (portable across terminals/CI). Red only
+# when stdout is a TTY, so captured/piped output stays plain for tests.
+tk_failure_banner() {
+  local set="$1" line="$2" core="$3" elapsed="${4:-}" c="" r=""
+  if [ -t 1 ]; then c=$'\033[1;31m'; r=$'\033[0m'; fi
+  printf '%s' "$c"
+  echo "+================================================+"
+  echo "|  X  CPU FAILURE DETECTED                        |"
+  echo "+================================================+"
+  printf '%s' "$r"
+  echo "  tool:    $set"
+  echo "  signal:  $line"
+  [ -n "$core" ]    && echo "  core:    logical CPU $core"
+  [ -n "$elapsed" ] && echo "  elapsed: $elapsed"
+  return 0
+}
+
 tk_scan_log() {
   local tool="$1" log="$2" pat
   [ -f "$log" ] || { echo "MISSING LOG: $log"; return 1; }
