@@ -28,6 +28,7 @@ technical rationale.
   - [preflight.sh — automated baseline check](#preflightsh--automated-baseline-check)
 - [Quickstart](#quickstart)
 - [Example output](#example-output)
+- [Live failure detection](#live-failure-detection)
 - [Tests](#tests-priority-order)
 - [Reading results](#reading-results)
 - [Generating an RMA report](#generating-an-rma-report)
@@ -151,6 +152,29 @@ row per run:
 | timestamp | min | tests | verdict | max pkg °C | errors | notes |
 |-----------|-----|-------|---------|-----------|--------|-------|
 | 20260606-141230 | 30 | core-target core-sweep | FAIL (errors) | 88 | 1 | - |
+
+---
+
+## Live failure detection
+
+Stress tests stream through a watchdog. The instant a tool prints an error
+signature — a y-cruncher checksum mismatch, a Prime95 `FATAL ERROR`, a stress-ng
+verification failure — the kit prints a banner naming the offending logical core
+and stops that test immediately, rather than idling out the remaining duration
+(y-cruncher, for example, otherwise blocks on a `Press ENTER` prompt after an
+error):
+
+```text
++================================================+
+|  X  CPU FAILURE DETECTED                        |
++================================================+
+  tool:    ycruncher
+  signal:  Checksum Mismatch
+  core:    logical CPU 10
+```
+
+The full output still lands in the run's log either way — you just no longer
+have to watch the terminal or grep a log to know a run failed.
 
 ---
 
