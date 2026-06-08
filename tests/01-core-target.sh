@@ -39,11 +39,10 @@ cat > "$CFG" <<EOF
 }
 EOF
 
-# pause:0 = exit without waiting for ENTER. Duration is enforced by SecondsTotal;
-# the outer timeout is only a watchdog (+5 min grace) in case y-cruncher hangs.
-timeout "$((DURATION_MIN+5))m" "$YC" pause:0 config "$CFG" >> "$LOG" 2>&1
-rc=$?
-[ "$rc" = "124" ] && { echo "WATCHDOG: y-cruncher ran past SecondsTotal and was killed" | tee -a "$LOG"; rc=2; }
-tk_scan_log ycruncher "$LOG" >/dev/null; scan=$?
-[ "$rc" -ne 0 ] && [ "$scan" -eq 0 ] && exit 2   # died abnormally, no error text
-exit "$scan"
+# Live watchdog: tk_run_watched streams y-cruncher's output, surfaces the first
+# error in-terminal and kills it on the spot (no 5-min ENTER-prompt idle). The
+# outer timeout stays as a true backstop for a no-output hang. SecondsTotal still
+# bounds a clean run. Returns 0=clean, 1=error detected, 2=abnormal/backstop.
+tk_run_watched "$LOG" ycruncher -- \
+  timeout "$((DURATION_MIN+5))m" "$YC" pause:0 config "$CFG"
+exit $?
