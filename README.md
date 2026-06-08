@@ -30,6 +30,7 @@ technical rationale.
 - [Example output](#example-output)
 - [Live failure detection](#live-failure-detection)
 - [Tests](#tests-priority-order)
+- [How the kit picks which cores to test](#how-the-kit-picks-which-cores-to-test)
 - [Reading results](#reading-results)
 - [Generating an RMA report](#generating-an-rma-report)
 - [Catching real crashes automatically](#catching-real-crashes-automatically-recommended)
@@ -192,6 +193,46 @@ have to watch the terminal or grep a log to know a run failed.
 
 The preferred core is auto-detected from `lscpu` (the logical CPU(s) with the
 highest MAXMHZ). It is not hard-coded to any particular CPU number.
+
+---
+
+## How the kit picks which cores to test
+
+**Works on any Raptor Lake chip** — nothing is hard-coded to the i9-14900K.
+Core selection is detected from `lscpu` at runtime, so the same commands target
+the right cores on a 13600K, 13700K, 14700K, and so on.
+
+**P-cores only.** The Vmin-shift defect is a *P-core boost* phenomenon — it shows
+up on the high-frequency performance cores that hit the top turbo bins, not on
+the efficiency (E) cores, which never boost that high. The kit therefore targets
+P-cores and **excludes E-cores**. A P-core is detected as a physical core with
+two SMT siblings (HyperThreading); if HyperThreading is disabled it falls back to
+treating the top MAXMHZ tier as the P-cores (and says so).
+
+**Two ways to find a bad core:**
+
+- **Sweep (default — zero knowledge needed).** `./imcc run` includes `core-sweep`,
+  which stresses each P-core in turn (fastest-boosting first) and flags any that
+  fail. You don't need to know which core is bad — the one that breaks while the
+  others pass *is* the evidence. The cores that pass act as their own control.
+- **A/B (suspect vs control).** `./imcc ab` runs the heavier FFT-class suite on a
+  **suspect** core, then the same suite on a **control** core, and compares.
+  - *Suspect* is auto-chosen as the **fastest-boosting P-core** (most likely to
+    expose a degraded Vmin).
+  - *Control* is the **next P-core** — a same-tier core that *should* pass. The
+    asymmetry (suspect fails, control passes) is what isolates the defect to one
+    core rather than the board/RAM/cooling.
+
+**Targeting a specific core you already suspect.** If a kernel crash named a CPU
+(e.g. a dmesg `BUG: ... CPU: 11` line), point the A/B run straight at it:
+
+```bash
+./imcc ab --suspect 11      # expands 11 to its SMT sibling pair (e.g. 10,11)
+                            # and auto-picks a control P-core
+```
+
+You can also override both sides explicitly with environment variables:
+`TK_SUSPECT=10,11 TK_CONTROL=8,9 ./imcc ab`.
 
 ---
 

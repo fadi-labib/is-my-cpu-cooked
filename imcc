@@ -38,6 +38,11 @@ The flow, in order:
   5. ./imcc warranty       how to send that evidence to Intel for a replacement
 
 Tip: ./imcc run --quick is a 15-min smoke test; ./imcc run --soak is an 8-hour soak.
+
+Finding the bad core:
+  - ./imcc run sweeps every P-core and flags the one that fails (no knowledge needed).
+  - ./imcc ab compares a suspect core vs a control core (both auto-detected).
+  - Saw a CPU number in a dmesg crash? Target it: ./imcc ab --suspect 11
 EOF
 }
 
