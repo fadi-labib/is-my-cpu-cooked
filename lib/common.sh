@@ -91,7 +91,7 @@ tk_max_temp() {
 # would false-positive every run. Real failures print "Failed" / "Exception".
 tk_sig_pattern() {
   case "$1" in
-    stress-ng)  echo 'fail:|verification failed|verify' ;;
+    stress-ng)  echo 'fail:|verification failed' ;;
     ycruncher)  echo 'Exception|Error [Cc]ode|mismatch|[Cc]oefficient|unstable|Failed' ;;
     compile)    echo 'internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' ;;
     prime95)    echo 'FATAL ERROR|[Rr]ounding|[Hh]ardware failure' ;;
