@@ -9,11 +9,15 @@
 # 3. Scans for kernel crash signatures captured during the runs, regenerates
 #    the RMA report, and prints the A/B conclusion.
 #
-# Usage: ./imcc ab [--check] [--minutes N]
-#   --check      setup verification only; do not start any stress test
-#   --minutes N  duration per tool per leg (default 20; 3 tools x 2 legs = 6N min)
-# Env overrides: TK_SUSPECT (default 10,11), TK_CONTROL (default 8,9),
-#                TK_TESTS (default core-target,stress-ng,prime95)
+# Usage: ./imcc ab [--check] [--minutes N] [--suspect CPU]
+#   --check       setup verification only; do not start any stress test
+#   --minutes N   duration per tool per leg (default 20; 3 tools x 2 legs = 6N min)
+#   --suspect CPU a logical CPU (as seen in a dmesg crash line, e.g. 11); its SMT
+#                 sibling pair becomes the suspect, control is auto-picked.
+# Suspect/control are AUTO-DETECTED for any Raptor Lake chip: suspect = the
+# fastest-boosting P-core, control = the next P-core. E-cores are never targeted.
+# Env overrides: TK_SUSPECT, TK_CONTROL (comma pairs), TK_TESTS
+#                (default core-target,stress-ng,prime95).
 #
 # Deliberately sudo-free: if target CPUs are offline (chcpu -d mitigation),
 # it refuses and prints the exact command to bring them back.
@@ -22,18 +26,46 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 . "$HERE/../lib/common.sh"
 RESULTS="$HERE/../results"
 
-SUSPECT="${TK_SUSPECT:-10,11}"
-CONTROL="${TK_CONTROL:-8,9}"
 TESTS="${TK_TESTS:-core-target,stress-ng,prime95}"
 MINUTES=20
 CHECK_ONLY=0
+SUSPECT_CPU=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --check)   CHECK_ONLY=1; shift;;
     --minutes) MINUTES="$2"; shift 2;;
-    *) echo "unknown arg: $1 (usage: ./imcc ab [--check] [--minutes N])"; exit 1;;
+    --suspect) SUSPECT_CPU="$2"; shift 2;;
+    *) echo "unknown arg: $1 (usage: ./imcc ab [--check] [--minutes N] [--suspect CPU])"; exit 1;;
   esac
 done
+
+# Resolve suspect/control. Precedence — suspect: --suspect flag > TK_SUSPECT env >
+# auto (top P-core). control: TK_CONTROL env > auto (next distinct P-core).
+# Auto-detection (any Raptor Lake chip) enumerates P-cores; E-cores are excluded.
+if [ -z "${TK_SUSPECT:-}" ] || [ -z "${TK_CONTROL:-}" ] || [ -n "$SUSPECT_CPU" ]; then
+  mapfile -t REPS < <(tk_detect_pcore_reps | tr ' ' '\n')
+  if [ "${#REPS[@]}" -lt 2 ]; then
+    echo "need >=2 P-cores for A/B; this chip reports ${#REPS[@]}. Use 'imcc run' (sweep) instead." >&2
+    exit 1
+  fi
+fi
+if [ -n "$SUSPECT_CPU" ]; then
+  SUSPECT="$(tk_core_siblings "$SUSPECT_CPU")"
+elif [ -n "${TK_SUSPECT:-}" ]; then
+  SUSPECT="$TK_SUSPECT"
+else
+  SUSPECT="$(tk_core_siblings "${REPS[0]}")"
+fi
+if [ -n "${TK_CONTROL:-}" ]; then
+  CONTROL="$TK_CONTROL"
+else
+  CONTROL=""
+  for r in "${REPS[@]}"; do
+    sib="$(tk_core_siblings "$r")"
+    [ "$sib" != "$SUSPECT" ] && { CONTROL="$sib"; break; }
+  done
+  [ -n "$CONTROL" ] || { echo "could not pick a control core distinct from suspect ($SUSPECT)" >&2; exit 1; }
+fi
 
 say()  { printf '%s\n' "$*"; }
 ok()   { printf '[OK]   %s\n' "$*"; }
