@@ -19,8 +19,11 @@ TortureMem=8
 TortureTime=3
 EOF
 # Menu input: 16 = Torture Test, 2 = Small FFTs, then run; timeout bounds it.
-timeout "${DURATION_MIN}m" "${PIN[@]}" bash -c 'printf "16\n2\nN\n" | "'"$MP"'" -t' >> "$LOG" 2>&1
-rc=$?; [ "$rc" = "124" ] && rc=0
-tk_scan_log prime95 "$LOG" >/dev/null; scan=$?
-[ "$rc" -ne 0 ] && [ "$scan" -eq 0 ] && exit 2
-exit "$scan"
+# Live watchdog surfaces a FATAL ERROR / rounding error the moment mprime prints
+# it. timeout firing (mapped to rc 2 by tk_run_watched) is the normal duration
+# cap here, so a backstop-kill with no error text reads as clean.
+tk_run_watched "$LOG" prime95 -- \
+  timeout "${DURATION_MIN}m" "${PIN[@]}" bash -c 'printf "16\n2\nN\n" | "'"$MP"'" -t'
+rc=$?
+[ "$rc" = "2" ] && rc=0   # duration-cap timeout with no error = clean
+exit "$rc"
