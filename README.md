@@ -25,7 +25,7 @@ technical rationale.
 - [Is this for me?](#is-this-for-me)
 - [Why single-core, light-load tests?](#why-single-core-light-load-tests)
 - [Step 0 — eliminate the confounder](#step-0--eliminate-the-confounder-important)
-  - [preflight.sh — automated baseline check](#preflightsh--automated-baseline-check)
+  - [check — automated baseline check](#check--automated-baseline-check)
 - [Quickstart](#quickstart)
 - [Example output](#example-output)
 - [Live failure detection](#live-failure-detection)
@@ -82,18 +82,18 @@ run the kit. If you re-enable them and failures return, that is still the CPU
 (the degraded Vmin cannot handle non-default conditions the chip was once
 perfectly stable on).
 
-### preflight.sh — automated baseline check
+### check — automated baseline check
 
-Use `preflight.sh` to verify the BIOS baseline programmatically before
+Use `./imcc check` to verify the BIOS baseline programmatically before
 trusting any stress result. It checks microcode version, RAPL power limits,
 CPU frequency governor, and (with root) RAM XMP/EXPO state:
 
 ```bash
-./preflight.sh            # checks microcode, power limits, governor
-sudo ./preflight.sh       # full check including RAM/XMP via dmidecode
+./imcc check            # checks microcode, power limits, governor
+sudo ./imcc check       # full check including RAM/XMP via dmidecode
 ```
 
-`preflight.sh` exits 0 ("BASELINE OK") if no hard confounders are detected,
+`./imcc check` exits 0 ("BASELINE OK") if no hard confounders are detected,
 or exits 1 ("CONFOUNDERS PRESENT") if XMP/EXPO is on or power limits are
 removed. Fix any flagged issues before running the test battery — otherwise
 a FAIL may reflect the board configuration, not the CPU.
@@ -103,19 +103,20 @@ a FAIL may reflect the board configuration, not the CPU.
 ## Quickstart
 
 ```bash
-./setup.sh        # once: installs stress-ng/build-essential, downloads y-cruncher + mprime
-./run-all.sh      # full battery, 90 min per test
+./imcc setup      # once: installs stress-ng/build-essential, downloads y-cruncher + mprime
+./imcc guide      # not sure what to run? this explains the whole flow
+./imcc run        # full battery, 90 min per test
 ```
 
 Common options:
 
 ```bash
-./run-all.sh --tests core-target,core-sweep   # targeted detectors only
-./run-all.sh --quick                           # preset: 15 min smoke (not conclusive)
-./run-all.sh --soak                            # preset: 8-hour overnight soak
-./run-all.sh --minutes 15                      # custom duration (overrides preset if given after)
-./run-all.sh --loops 5                         # repeat the battery 5×
-./run-all.sh --volts                           # also log per-core MHz / voltage
+./imcc run --tests core-target,core-sweep   # targeted detectors only
+./imcc run --quick                           # preset: 15 min smoke (not conclusive)
+./imcc run --soak                            # preset: 8-hour overnight soak
+./imcc run --minutes 15                      # custom duration (overrides preset if given after)
+./imcc run --loops 5                         # repeat the battery 5×
+./imcc run --volts                           # also log per-core MHz / voltage
 ```
 
 Monitor temps live in another terminal:
@@ -132,7 +133,7 @@ Each run prints a one-line verdict and writes a full evidence trail under
 `results/`:
 
 ```text
-$ ./run-all.sh --tests core-target,core-sweep --minutes 30
+$ ./imcc run --tests core-target,core-sweep --minutes 30
 CPU: Intel(R) Core(TM) i9-14900K | preferred cores: 8 9 10 11 | microcode: 0x133
 ===== loop 1/1 =====
 --- core-target ---
@@ -220,7 +221,7 @@ Verdicts:
 After one or more runs:
 
 ```bash
-./report.sh
+./imcc report
 ```
 
 This bundles sysinfo, the runs table, verdict tally, and any captured kernel /
@@ -235,7 +236,7 @@ Install the boot-time watcher to capture kernel BUGs and userspace traps from
 your normal desktop usage:
 
 ```bash
-./watcher/install-watcher.sh
+./imcc watch
 ```
 
 This installs a user-level systemd unit that scans the journal each boot and
@@ -257,7 +258,7 @@ chip that crashes before the microcode update will still crash after it, just
 at a lower all-core boost clock.
 
 Steps:
-1. Run this kit and collect `results/RMA-REPORT.md` (`./report.sh`).
+1. Run this kit and collect `results/RMA-REPORT.md` (`./imcc report`).
 2. Note your purchase proof (receipt, Amazon/Newegg order).
 3. Open a case at **https://www.intel.com/content/www/us/en/support/contact-support.html**
 4. Attach the report and describe the real-world crash symptoms.
