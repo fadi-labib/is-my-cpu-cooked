@@ -85,18 +85,24 @@ tk_max_temp() {
     | sort -rn | head -1 | grep -E '^[0-9]+$' || echo 0
 }
 
+# tk_sig_pattern <tool-set> -> echoes the error-detection regex for a tool.
+# Single source of truth shared by tk_scan_log (post-run) and tk_watch_stream (live).
+# NOTE: no bare '[Ee]rror' for ycruncher — its settings echo ("Stop on Error: Enabled")
+# would false-positive every run. Real failures print "Failed" / "Exception".
+tk_sig_pattern() {
+  case "$1" in
+    stress-ng)  echo 'fail:|verification failed|verify' ;;
+    ycruncher)  echo 'Exception|Error [Cc]ode|mismatch|[Cc]oefficient|unstable|Failed' ;;
+    compile)    echo 'internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' ;;
+    prime95)    echo 'FATAL ERROR|[Rr]ounding|[Hh]ardware failure' ;;
+    *)          echo '[Ee]rror|FATAL|fail' ;;
+  esac
+}
+
 tk_scan_log() {
   local tool="$1" log="$2" pat
   [ -f "$log" ] || { echo "MISSING LOG: $log"; return 1; }
-  case "$tool" in
-    stress-ng)  pat='fail:|verification failed|verify' ;;
-    # NOTE: no bare '[Ee]rror' — y-cruncher's settings echo ("Stop on Error: Enabled")
-    # would false-positive every run. Real failures print "Failed" / "Exception".
-    ycruncher)  pat='Exception|Error [Cc]ode|mismatch|[Cc]oefficient|unstable|Failed' ;;
-    compile)    pat='internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' ;;
-    prime95)    pat='FATAL ERROR|[Rr]ounding|[Hh]ardware failure' ;;
-    *)          pat='[Ee]rror|FATAL|fail' ;;
-  esac
+  pat="$(tk_sig_pattern "$tool")"
   if grep -nE "$pat" "$log"; then return 1; fi
   return 0
 }
