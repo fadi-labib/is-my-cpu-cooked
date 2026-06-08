@@ -118,4 +118,9 @@ assert_eq "$(tk_sig_pattern ycruncher)" 'Exception|Error [Cc]ode|mismatch|[Cc]oe
 assert_eq "$(tk_sig_pattern compile)" 'internal compiler error|[Ss]egmentation fault|signal 11|Error [0-9]' "sig compile"
 assert_eq "$(tk_sig_pattern anything-else)" '[Ee]rror|FATAL|fail' "sig default fallback"
 
+# --- tk_extract_core: pull the offending logical CPU from a tool error line ---
+assert_eq "$(tk_extract_core 'Error(s) encountered on logical core 10.')" "10" "extract core 10"
+assert_eq "$(tk_extract_core 'Error(s) encountered on logical core 11.')" "11" "extract core 11"
+assert_eq "$(tk_extract_core 'FATAL ERROR: rounding was 0.5')" "" "no core in line -> empty"
+
 tk_test_summary

@@ -99,6 +99,12 @@ tk_sig_pattern() {
   esac
 }
 
+# tk_extract_core <line> -> echoes the logical-CPU number named in a tool error
+# line ("...logical core N..."), or empty string if the line names no core. Pure.
+tk_extract_core() {
+  printf '%s\n' "$1" | sed -nE 's/.*logical core ([0-9]+).*/\1/p' | head -1
+}
+
 tk_scan_log() {
   local tool="$1" log="$2" pat
   [ -f "$log" ] || { echo "MISSING LOG: $log"; return 1; }
