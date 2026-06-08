@@ -2,7 +2,7 @@
 # Installs/fetches everything the testkit needs. Idempotent. Run once.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-VENDOR="$HERE/vendor"
+VENDOR="$HERE/../vendor"
 mkdir -p "$VENDOR"
 
 # NOTE: not every release ships Linux binaries (some are "Windows Only") —

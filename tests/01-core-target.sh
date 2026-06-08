@@ -19,7 +19,7 @@ YC="$(ls "$VENDOR"/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
 
 tk_mark_progress "$RUN_DIR" "core-target (cpu $TARGET)"
 echo "core-target: pinning y-cruncher stress to logical CPU(s) $TARGET for ${DURATION_MIN}m" | tee "$LOG"
-[ -x "$YC" ] || { echo "y-cruncher not found — run setup.sh" | tee -a "$LOG"; exit 2; }
+[ -x "$YC" ] || { echo "y-cruncher not found — run ./imcc setup" | tee -a "$LOG"; exit 2; }
 
 # y-cruncher appends ".cfg" when the extension is missing, so process
 # substitution (/dev/fd/N) breaks — it must be a real file ending in .cfg.

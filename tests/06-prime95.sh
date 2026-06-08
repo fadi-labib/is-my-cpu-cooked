@@ -5,7 +5,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 . "$HERE/../lib/common.sh"; VENDOR="$HERE/../vendor"
 : "${RUN_DIR:?RUN_DIR required}"; DURATION_MIN="${DURATION_MIN:-30}"
 LOG="$RUN_DIR/prime95.log"; MP="$VENDOR/mprime/mprime"
-[ -x "$MP" ] || { echo "mprime not found — run setup.sh" > "$LOG"; exit 2; }
+[ -x "$MP" ] || { echo "mprime not found — run ./imcc setup" > "$LOG"; exit 2; }
 # Optional pin: mprime does not rebind its own affinity, so taskset holds
 # (verified by ab-evidence.sh's pin check). Worker count stays at the default;
 # oversubscription on two logical CPUs is harmless for Small FFTs.

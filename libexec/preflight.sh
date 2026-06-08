@@ -6,8 +6,8 @@
 #        sudo ./preflight.sh     (full check including dmidecode for XMP)
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
-# shellcheck source=lib/common.sh
-. "$HERE/lib/common.sh"
+# shellcheck source=../lib/common.sh
+. "$HERE/../lib/common.sh"
 
 # --- label helpers: print coloured marker when stdout is a TTY, plain text otherwise ---
 pf_pass()  { [ -t 1 ] && printf '\033[32m[PASS]\033[0m ' || printf '[PASS] '; }
@@ -117,7 +117,7 @@ if dmidecode -t memory > /dev/null 2>&1; then
     pf_info; echo "RAM/XMP:   dmidecode ran but no populated DIMM slot found"
   fi
 else
-  pf_info; echo "RAM/XMP:   needs root — re-run as: sudo ./preflight.sh"
+  pf_info; echo "RAM/XMP:   needs root — re-run as: sudo ./imcc check"
 fi
 echo
 

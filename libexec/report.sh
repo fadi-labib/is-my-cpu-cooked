@@ -3,19 +3,19 @@
 # attaching to an Intel support / RMA ticket.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
-. "$HERE/lib/common.sh"
-RESULTS="$HERE/results"
+. "$HERE/../lib/common.sh"
+RESULTS="$HERE/../results"
 
 # ── guard: no results yet ──────────────────────────────────────────────────────
 if [ ! -d "$RESULTS" ] || [ -z "$(ls -A "$RESULTS" 2>/dev/null)" ]; then
-  echo "no results yet — run ./run-all.sh first"
+  echo "no results yet — run ./imcc run first"
   exit 1
 fi
 
 # Find run dirs (dirs with a timestamp name, not the flat files)
 mapfile -t RUN_DIRS < <(find "$RESULTS" -mindepth 1 -maxdepth 1 -type d | sort)
 if [ "${#RUN_DIRS[@]}" -eq 0 ]; then
-  echo "no results yet — run ./run-all.sh first"
+  echo "no results yet — run ./imcc run first"
   exit 1
 fi
 

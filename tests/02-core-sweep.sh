@@ -10,7 +10,7 @@ VENDOR="$HERE/../vendor"
 SWEEP_MIN="${SWEEP_MIN:-8}"
 LOG="$RUN_DIR/core-sweep.log"
 YC="$(ls "$VENDOR"/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
-[ -x "$YC" ] || { echo "y-cruncher not found — run setup.sh" > "$LOG"; exit 2; }
+[ -x "$YC" ] || { echo "y-cruncher not found — run ./imcc setup" > "$LOG"; exit 2; }
 
 mapfile -t ORDER < <(tk_detect_pcore_threads | tr ' ' '\n')
 [ "${#ORDER[@]}" -gt 0 ] || { echo "could not enumerate cores (lscpu failed?)" > "$LOG"; exit 2; }

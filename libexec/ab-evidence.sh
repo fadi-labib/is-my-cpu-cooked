@@ -19,8 +19,8 @@
 # it refuses and prints the exact command to bring them back.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
-. "$HERE/lib/common.sh"
-RESULTS="$HERE/results"
+. "$HERE/../lib/common.sh"
+RESULTS="$HERE/../results"
 
 SUSPECT="${TK_SUSPECT:-10,11}"
 CONTROL="${TK_CONTROL:-8,9}"
@@ -31,7 +31,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --check)   CHECK_ONLY=1; shift;;
     --minutes) MINUTES="$2"; shift 2;;
-    *) echo "unknown arg: $1 (usage: ./ab-evidence.sh [--check] [--minutes N])"; exit 1;;
+    *) echo "unknown arg: $1 (usage: ./imcc ab [--check] [--minutes N])"; exit 1;;
   esac
 done
 
@@ -45,12 +45,12 @@ SETUP_BAD=0
 say "====== setup verification ======"
 
 command -v stress-ng >/dev/null 2>&1 \
-  && ok "stress-ng installed" || bad "stress-ng missing — run ./setup.sh"
-YC="$(ls "$HERE"/vendor/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
+  && ok "stress-ng installed" || bad "stress-ng missing — run ./imcc setup"
+YC="$(ls "$HERE"/../vendor/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
 [ -n "$YC" ] && [ -x "$YC" ] \
-  && ok "y-cruncher present" || bad "y-cruncher missing — run ./setup.sh"
-[ -x "$HERE/vendor/mprime/mprime" ] \
-  && ok "mprime present" || bad "mprime missing — run ./setup.sh"
+  && ok "y-cruncher present" || bad "y-cruncher missing — run ./imcc setup"
+[ -x "$HERE/../vendor/mprime/mprime" ] \
+  && ok "mprime present" || bad "mprime missing — run ./imcc setup"
 
 if systemctl --user is-active --quiet testkit-crashscan.timer 2>/dev/null; then
   ok "crash watcher timer active (scans every 10 min)"
@@ -160,7 +160,7 @@ trap - INT TERM
 # ── 3. crash check + report ───────────────────────────────────────────────────
 say ""
 say "====== crash-log check ======"
-"$HERE/watcher/crash-scan.sh"
+"$HERE/../watcher/crash-scan.sh"
 K1="$(wc -l < "$KLOG" 2>/dev/null || echo 0)"
 if [ "$K1" -gt "$K0" ]; then
   warn "NEW kernel crash signatures captured during the runs:"

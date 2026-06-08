@@ -16,9 +16,8 @@ jobs:
       - name: shellcheck
         run: |
           shellcheck -S warning \
-            setup.sh \
-            run-all.sh \
-            report.sh \
+            imcc \
+            libexec/*.sh \
             tests/*.sh \
             watcher/*.sh \
             lib/*.sh \

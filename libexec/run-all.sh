@@ -2,8 +2,8 @@
 # Orchestrates the testkit: crash-scan prior runs, run selected tests, record verdict.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
-. "$HERE/lib/common.sh"
-RESULTS="$HERE/results"; mkdir -p "$RESULTS"
+. "$HERE/../lib/common.sh"
+RESULTS="$HERE/../results"; mkdir -p "$RESULTS"
 
 MODEL="$(tk_cpu_model)"
 echo "CPU: $MODEL | preferred cores: $(tk_detect_preferred_cpus) | microcode: $(grep -m1 microcode /proc/cpuinfo | awk '{print $3}')"
@@ -24,12 +24,12 @@ if [ -r "$_PL2_FILE" ]; then
   _PL2_UW="$(cat "$_PL2_FILE" 2>/dev/null || echo 0)"
   _PL2=$(( _PL2_UW / 1000000 ))
   if [ "$(tk_pl_state "$_PL2")" = "unlimited" ]; then
-    echo "WARNING: CPU power limits look unlimited (MCE?) — run ./preflight.sh; a FAIL may reflect the board, not the chip."
+    echo "WARNING: CPU power limits look unlimited (MCE?) — run ./imcc check; a FAIL may reflect the board, not the chip."
   fi
   unset _PL2_UW _PL2
 fi
 unset _PL2_FILE
-echo "Tip: run ./preflight.sh to confirm BIOS baseline (Intel Default + XMP off) before trusting results."
+echo "Tip: run ./imcc check to confirm BIOS baseline (Intel Default + XMP off) before trusting results."
 
 TESTS="core-target,core-sweep,stress-ng,y-cruncher,compile,prime95"
 MINUTES=90; LOOPS=1; VOLTS=0; THERMAL=95
@@ -81,7 +81,7 @@ run_once() {
   for t in "${LIST[@]}"; do
     local s="${SCRIPT[$t]:-}"; [ -z "$s" ] && { echo "skip unknown test: $t"; continue; }
     echo "--- $t ---"
-    RUN_DIR="$dir" DURATION_MIN="$MINUTES" bash "$HERE/$s"
+    RUN_DIR="$dir" DURATION_MIN="$MINUTES" bash "$HERE/../$s"
     local rc=$?
     ran="$ran$t "
     [ "$rc" -ne 0 ] && errs=$((errs+1))

@@ -5,7 +5,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 . "$HERE/../lib/common.sh"
 : "${RUN_DIR:?RUN_DIR required}"; DURATION_MIN="${DURATION_MIN:-30}"
 LOG="$RUN_DIR/stress-ng.log"
-command -v stress-ng >/dev/null || { echo "stress-ng missing — run setup.sh" > "$LOG"; exit 2; }
+command -v stress-ng >/dev/null || { echo "stress-ng missing — run ./imcc setup" > "$LOG"; exit 2; }
 if [ -n "${TK_TARGET_CPU:-}" ]; then
   # Pinned A/B mode: FFT-class verify load confined to the target CPUs.
   # (fft, not matrixprod/all — steady-state methods pass on cores that fail
