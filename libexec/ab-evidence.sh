@@ -9,7 +9,7 @@
 # 3. Scans for kernel crash signatures captured during the runs, regenerates
 #    the RMA report, and prints the A/B conclusion.
 #
-# Usage: ./ab-evidence.sh [--check] [--minutes N]
+# Usage: ./imcc ab [--check] [--minutes N]
 #   --check      setup verification only; do not start any stress test
 #   --minutes N  duration per tool per leg (default 20; 3 tools x 2 legs = 6N min)
 # Env overrides: TK_SUSPECT (default 10,11), TK_CONTROL (default 8,9),
@@ -55,7 +55,7 @@ YC="$(ls "$HERE"/../vendor/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
 if systemctl --user is-active --quiet testkit-crashscan.timer 2>/dev/null; then
   ok "crash watcher timer active (scans every 10 min)"
 else
-  bad "crash watcher timer NOT active — run ./watcher/install-watcher.sh"
+  bad "crash watcher timer NOT active — run ./imcc watch"
 fi
 
 # Every target CPU must be online (a leftover 'chcpu -d' kills pinned tests).

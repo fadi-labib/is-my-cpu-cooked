@@ -2,8 +2,8 @@
 # preflight.sh — verify BIOS baseline before trusting stress results.
 # Checks: CPU model, microcode version, RAPL power limits, RAM XMP/EXPO state,
 # and CPU frequency governor.
-# Usage: ./preflight.sh          (skips RAM/XMP check without root)
-#        sudo ./preflight.sh     (full check including dmidecode for XMP)
+# Usage: ./imcc check            (skips RAM/XMP check without root)
+#        sudo ./imcc check       (full check including dmidecode for XMP)
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=../lib/common.sh
