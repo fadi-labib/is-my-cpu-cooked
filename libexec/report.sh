@@ -11,6 +11,7 @@ if [ ! -d "$RESULTS" ] || [ -z "$(ls -A "$RESULTS" 2>/dev/null)" ]; then
   echo "no results yet — run ./imcc run first"
   exit 1
 fi
+RESULTS="$(cd "$RESULTS" && pwd)"  # normalize (drop the libexec/.. prefix in paths)
 
 # Find run dirs (dirs with a timestamp name, not the flat files)
 mapfile -t RUN_DIRS < <(find "$RESULTS" -mindepth 1 -maxdepth 1 -type d | sort)

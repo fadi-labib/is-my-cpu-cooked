@@ -51,14 +51,31 @@ declare -A SCRIPT=(
   [compile]=tests/05-compile-loop.sh [prime95]=tests/06-prime95.sh
 )
 
-# 1) Record any previous crashed run before starting.
+# 1) Record any previous crashed run before starting, then mark each one handled
+#    (write FINISHED) so a single incident is counted ONCE — not re-logged as a
+#    new CRASHED row on every subsequent launch.
 crashed="$(tk_scan_crashed "$RESULTS")"
 if [ -n "$crashed" ]; then
   echo "$crashed"
   while IFS= read -r line; do
     [ -n "$line" ] && tk_summary_append "$RESULTS" "$(date +%Y%m%d-%H%M%S)" "-" "-" "CRASHED (reset)" "-" "-" "$line"
   done <<< "$crashed"
+  for d in "$RESULTS"/*/; do
+    [ -f "$d/START" ] && [ ! -f "$d/FINISHED" ] && \
+      echo "recorded as CRASHED (reset) $(date '+%F %T')" > "$d/FINISHED"
+  done
 fi
+
+# Mark an interrupted (Ctrl-C / kill) run as an abort, NOT a hardware crash, so
+# the next launch's crash-scan doesn't misreport it. Mirrors ab-evidence.sh.
+_tk_abort_runs() {
+  local d
+  for d in "$RESULTS"/*/; do
+    [ -f "$d/START" ] && [ ! -f "$d/FINISHED" ] && \
+      echo "aborted $(date '+%F %T') — interrupted, not a crash" > "$d/FINISHED"
+  done
+  tk_temp_sampler_stop; [ "$VOLTS" -eq 1 ] && tk_volts_sampler_stop
+}
 
 run_once() {
   local ts; ts="$(date +%Y%m%d-%H%M%S)"
@@ -74,7 +91,8 @@ run_once() {
 
   tk_temp_sampler_start "$dir" 5
   [ "$VOLTS" -eq 1 ] && tk_volts_sampler_start "$dir" 5
-  trap 'tk_temp_sampler_stop; [ "$VOLTS" -eq 1 ] && tk_volts_sampler_stop' EXIT INT TERM
+  trap 'tk_temp_sampler_stop; [ "$VOLTS" -eq 1 ] && tk_volts_sampler_stop' EXIT
+  trap '_tk_abort_runs; exit 130' INT TERM
 
   local errs=0 ran=""
   IFS=',' read -ra LIST <<< "$TESTS"
