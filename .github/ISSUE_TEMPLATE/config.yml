@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: How the kit works / which command to run
+    url: https://github.com/fadi-labib/is-my-cpu-cooked#readme
+    about: "Read the README and `./imcc guide` first; they cover most questions."
+  - name: File an actual Intel RMA / warranty claim
+    url: https://www.intel.com/content/www/us/en/support/contact-support.html
+    about: "This repo builds the evidence; the warranty claim itself goes to Intel."

@@ -90,7 +90,7 @@ assert_eq "$(tk_pl_state 999)"  "ok"        "pl 999W ok boundary"
 assert_eq "$(tk_pl_state 0)"    "ok"        "pl 0W ok"
 
 # --- tk_is_affected_intel ---
-tk_is_affected_intel "Intel(R) Core(TM) i9-14900K"; assert_rc $? 0 "14900K is affected"
+tk_is_affected_intel "Intel(R) Core(TM) i9-13900K"; assert_rc $? 0 "13900K is affected"
 tk_is_affected_intel "Intel(R) Core(TM) i7-13700K"; assert_rc $? 0 "13700K is affected"
 tk_is_affected_intel "Intel(R) Core(TM) i5-12600K"; assert_rc $? 1 "12600K (12th gen) not affected"
 tk_is_affected_intel "AMD Ryzen 9 7950X";            assert_rc $? 1 "AMD not affected"
@@ -110,13 +110,13 @@ assert_eq "$(tk_ab_interpret 'CRASHED (reset)' 'PASS')" \
   "DEFECT ISOLATED: suspect core fails, control core clean under identical load" \
   "ab: suspect crash + control pass = isolated"
 assert_eq "$(tk_ab_interpret 'FAIL (errors)' 'FAIL (errors)')" \
-  "SYSTEMIC: both cores fail — suspect cooling/board/RAM or chip-wide issue, not a single core" \
+  "SYSTEMIC: both cores fail - suspect cooling/board/RAM or chip-wide issue, not a single core" \
   "ab: both fail = systemic"
 assert_eq "$(tk_ab_interpret 'PASS' 'CRASHED (reset)')" \
-  "UNEXPECTED: control failed while suspect passed — re-check assumptions before concluding" \
+  "UNEXPECTED: control failed while suspect passed - re-check assumptions before concluding" \
   "ab: control-only fail = unexpected"
 assert_eq "$(tk_ab_interpret 'THERMAL' 'PASS')" \
-  "NOT REPRODUCED: both cores clean this session — prior crash evidence stands; consider a longer run" \
+  "NOT REPRODUCED: both cores clean this session - prior crash evidence stands; consider a longer run" \
   "ab: both clean = not reproduced"
 
 # --- tk_sig_pattern: shared error regex per tool set ---

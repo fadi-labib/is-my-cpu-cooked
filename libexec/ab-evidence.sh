@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ab-evidence.sh — A/B evidence-collection protocol for one suspect core.
+# ab-evidence.sh - A/B evidence-collection protocol for one suspect core.
 #
 # 1. Verifies the kit is actually set up: tools present, crash watcher timer
 #    active, target CPUs online, preflight baseline clean, system idle.
@@ -39,7 +39,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Resolve suspect/control. Precedence — suspect: --suspect flag > TK_SUSPECT env >
+# Resolve suspect/control. Precedence - suspect: --suspect flag > TK_SUSPECT env >
 # auto (top P-core). control: TK_CONTROL env > auto (next distinct P-core).
 # Auto-detection (any Raptor Lake chip) enumerates P-cores; E-cores are excluded.
 if [ -z "${TK_SUSPECT:-}" ] || [ -z "${TK_CONTROL:-}" ] || [ -n "$SUSPECT_CPU" ]; then
@@ -77,17 +77,17 @@ SETUP_BAD=0
 say "====== setup verification ======"
 
 command -v stress-ng >/dev/null 2>&1 \
-  && ok "stress-ng installed" || bad "stress-ng missing — run ./imcc setup"
+  && ok "stress-ng installed" || bad "stress-ng missing - run ./imcc setup"
 YC="$(ls "$HERE"/../vendor/y-cruncher*/y-cruncher 2>/dev/null | head -1)"
 [ -n "$YC" ] && [ -x "$YC" ] \
-  && ok "y-cruncher present" || bad "y-cruncher missing — run ./imcc setup"
+  && ok "y-cruncher present" || bad "y-cruncher missing - run ./imcc setup"
 [ -x "$HERE/../vendor/mprime/mprime" ] \
-  && ok "mprime present" || bad "mprime missing — run ./imcc setup"
+  && ok "mprime present" || bad "mprime missing - run ./imcc setup"
 
 if systemctl --user is-active --quiet testkit-crashscan.timer 2>/dev/null; then
   ok "crash watcher timer active (scans every 10 min)"
 else
-  bad "crash watcher timer NOT active — run ./imcc watch"
+  bad "crash watcher timer NOT active - run ./imcc watch"
 fi
 
 # Every target CPU must be online (a leftover 'chcpu -d' kills pinned tests).
@@ -98,7 +98,7 @@ for c in $(echo "$SUSPECT,$CONTROL" | tr ',' ' '); do
 done
 offline="${offline# }"
 if [ -n "$offline" ]; then
-  bad "CPUs $offline offline — run: sudo chcpu -e $(echo "$offline" | tr ' ' ',')   (re-disable after testing)"
+  bad "CPUs $offline offline - run: sudo chcpu -e $(echo "$offline" | tr ' ' ',')   (re-disable after testing)"
 else
   ok "target CPUs online (suspect $SUSPECT, control $CONTROL)"
 fi
@@ -118,19 +118,19 @@ cat /proc/stat > "$S0"; sleep 5; cat /proc/stat > "$S1"
 busy_now="$(tk_busy_cpus "$S0" "$S1" | awk '$2>50{n++} END{print n+0}')"
 rm -f "$S0" "$S1"
 if [ "$busy_now" -gt 2 ]; then
-  warn "$busy_now CPUs >50% busy right now — close heavy apps for a clean comparison"
+  warn "$busy_now CPUs >50% busy right now - close heavy apps for a clean comparison"
 else
   ok "system mostly idle ($busy_now CPUs busy)"
 fi
 
 if [ "$SETUP_BAD" -ne 0 ]; then
   say ""
-  say "setup verification FAILED — fix the [FAIL] items above and re-run."
+  say "setup verification FAILED - fix the [FAIL] items above and re-run."
   exit 1
 fi
 if [ "$CHECK_ONLY" -eq 1 ]; then
   say ""
-  say "setup OK — run without --check to start (~$((MINUTES*6)) min total)."
+  say "setup OK - run without --check to start (~$((MINUTES*6)) min total)."
   exit 0
 fi
 
@@ -145,7 +145,7 @@ abort_guard() {
   local d
   for d in "$RESULTS"/*/; do
     if [ -f "$d/START" ] && [ ! -f "$d/FINISHED" ]; then
-      echo "aborted $(date '+%F %T') — ab-evidence interrupted, not a crash" > "$d/FINISHED"
+      echo "aborted $(date '+%F %T') - ab-evidence interrupted, not a crash" > "$d/FINISHED"
     fi
   done
 }
@@ -155,7 +155,7 @@ LEG_VERDICT=""
 run_leg() { # <cpus> <label>
   local cpus="$1" label="$2" s0 s1 snap pin
   say ""
-  say "====== $label leg: CPUs $cpus — ${MINUTES}m x {$TESTS} ======"
+  say "====== $label leg: CPUs $cpus - ${MINUTES}m x {$TESTS} ======"
   # Pin spot-check: snapshot per-CPU load 3 min into the leg (10s window).
   s0="$(mktemp)"; s1="$(mktemp)"
   ( sleep 180; cat /proc/stat > "$s0"; sleep 10; cat /proc/stat > "$s1" ) &
@@ -169,10 +169,10 @@ run_leg() { # <cpus> <label>
         if (!want[$1] && $2>80) esc=esc" "$1 }
       END { if (miss) printf "MISS%s;", miss; if (esc) printf "ESC%s;", esc }')"
     case "$pin" in
-      *MISS*) warn "pin check: target CPUs were NOT loaded 3 min into the $label leg ($pin) — result suspect";;
+      *MISS*) warn "pin check: target CPUs were NOT loaded 3 min into the $label leg ($pin) - result suspect";;
     esac
     case "$pin" in
-      *ESC*)  warn "pin check: load outside target CPUs during $label leg ($pin) — background noise or affinity escape";;
+      *ESC*)  warn "pin check: load outside target CPUs during $label leg ($pin) - background noise or affinity escape";;
     esac
     [ -z "$pin" ] && ok "pin check: load confined to CPUs $cpus"
   else

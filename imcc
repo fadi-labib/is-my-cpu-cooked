@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# imcc — single front door for the is-my-cpu-cooked kit.
+# imcc - single front door for the is-my-cpu-cooked kit.
 # Dispatches to libexec/ scripts (and the watcher), or prints inline guidance.
 set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -8,7 +8,7 @@ INTEL_SUPPORT_URL="https://www.intel.com/content/www/us/en/support/contact-suppo
 
 usage() {
   cat <<EOF
-is-my-cpu-cooked — is your Intel chip toast?
+is-my-cpu-cooked - is your Intel chip toast?
 
 usage: ./imcc <command> [options]
 
@@ -51,7 +51,7 @@ warranty() {
 Filing an Intel warranty claim (RMA)
 
 Intel has acknowledged the Raptor Lake (13th/14th-gen) Vmin-shift defect and
-extended the warranty to 5 years from purchase — eligible for replacement or
+extended the warranty to 5 years from purchase - eligible for replacement or
 refund.
 
 Steps:
@@ -64,7 +64,7 @@ Steps:
 EOF
   if [ ! -f "$HERE/results/RMA-REPORT.md" ]; then
     echo
-    echo "Note: results/RMA-REPORT.md doesn't exist yet — run ./imcc report first."
+    echo "Note: results/RMA-REPORT.md doesn't exist yet - run ./imcc report first."
   fi
 }
 

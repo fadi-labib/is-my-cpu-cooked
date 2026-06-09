@@ -1,0 +1,74 @@
+name: "CPU test result"
+description: "Share a run from your 13th/14th-gen Intel CPU (pass or fail) to widen the dataset."
+title: "[result] <CPU model>: <PASS/FAIL>"
+labels: ["result"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for contributing a data point. Results from **any** outcome help:
+        a clean pass on a healthy chip is as useful as a failure. Please confirm
+        the BIOS baseline first (`sudo ./imcc check`) so the result is meaningful.
+  - type: input
+    id: cpu
+    attributes:
+      label: CPU model
+      placeholder: "e.g. i7-13700K"
+    validations:
+      required: true
+  - type: input
+    id: microcode
+    attributes:
+      label: Microcode
+      placeholder: "e.g. 0x133 (from ./imcc check)"
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Distro & kernel
+      placeholder: "e.g. Ubuntu 24.04, kernel 6.8"
+    validations:
+      required: true
+  - type: checkboxes
+    id: baseline
+    attributes:
+      label: Baseline (Step 0)
+      options:
+        - label: "BIOS at Intel Default Settings"
+          required: true
+        - label: "XMP / EXPO disabled"
+          required: true
+        - label: "`./imcc check` reported BASELINE OK"
+          required: true
+  - type: dropdown
+    id: command
+    attributes:
+      label: What did you run?
+      options:
+        - "imcc run (full battery / sweep)"
+        - "imcc ab (suspect vs control)"
+        - "imcc ab --suspect N"
+        - "other (describe below)"
+    validations:
+      required: true
+  - type: dropdown
+    id: verdict
+    attributes:
+      label: Overall verdict
+      options: ["PASS", "FAIL (errors)", "THERMAL", "CRASHED", "mixed (per-core)"]
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: "Paste the relevant section of results/RMA-REPORT.md (the A/B reproduction or per-core sweep table). Redact anything you don't want public."
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else?
+      description: "Real-world symptoms, cooler, RMA outcome, etc. (optional)"

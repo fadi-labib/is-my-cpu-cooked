@@ -5,7 +5,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 VENDOR="$HERE/../vendor"
 mkdir -p "$VENDOR"
 
-# NOTE: not every release ships Linux binaries (some are "Windows Only") —
+# NOTE: not every release ships Linux binaries (some are "Windows Only"),
 # pin a tag that has a -static.tar.xz asset. Static build = no host-lib variance.
 YCRUNCHER_VER="0.8.7.9547"
 YCRUNCHER_URL="https://github.com/Mysticial/y-cruncher/releases/download/v${YCRUNCHER_VER}/y-cruncher.v${YCRUNCHER_VER}-static.tar.xz"
@@ -43,7 +43,7 @@ verify_archive() {
     exit 1
   fi
 
-  # (a) archive-type guard — reject HTML error pages and other non-archives
+  # (a) archive-type guard - reject HTML error pages and other non-archives
   local ftype; ftype="$(file --brief "$f")"
   case "$ftype" in
     *HTML*|*html*|*ASCII\ text*|*UTF-8\ Unicode\ text*)
@@ -53,7 +53,7 @@ verify_archive() {
       exit 1
       ;;
     *XZ\ compressed*|*gzip\ compressed*|*tar\ archive*|*Zip\ archive*|*POSIX\ tar*)
-      : # expected archive types — continue
+      : # expected archive types - continue
       ;;
     *)
       # Warn but don't abort for unexpected-but-non-HTML types
@@ -69,7 +69,7 @@ verify_archive() {
   if [ -f "$CHECKSUMS" ]; then
     local pinned; pinned="$(awk -v b="$base" '$2==b{print $1}' "$CHECKSUMS")"
     if [ -z "$pinned" ]; then
-      echo "  (no pinned hash for $base in $CHECKSUMS — skipping pin check)"
+      echo "  (no pinned hash for $base in $CHECKSUMS - skipping pin check)"
     elif [ "$sum" != "$pinned" ]; then
       echo "ERROR: sha256 mismatch for $label ($base)!" >&2
       echo "  expected: $pinned" >&2
@@ -97,7 +97,7 @@ install_packages() {
     echo "==> pacman deps (stress-ng, base-devel, lm_sensors, util-linux, xz, curl, file)"
     sudo pacman -S --noconfirm stress-ng base-devel lm_sensors util-linux xz curl file
   else
-    echo "WARNING: unsupported package manager — install manually: stress-ng, a C toolchain (gcc/make), lm-sensors, xz, curl, file" >&2
+    echo "WARNING: unsupported package manager - install manually: stress-ng, a C toolchain (gcc/make), lm-sensors, xz, curl, file" >&2
     echo "         Continuing; vendored-tool downloads may still succeed." >&2
   fi
 }

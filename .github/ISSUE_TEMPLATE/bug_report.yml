@@ -1,0 +1,42 @@
+name: "Bug report"
+description: "Something in the kit itself is broken (not a CPU test result)."
+title: "[bug] <short summary>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "For sharing a CPU *result*, use the 'CPU test result' template instead."
+  - type: input
+    id: os
+    attributes:
+      label: Distro, kernel & bash version
+      placeholder: "e.g. Fedora 40, kernel 6.9, bash 5.2"
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command you ran
+      placeholder: "e.g. ./imcc ab --suspect 11"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What actually happened?
+      description: "Paste the terminal output / error. Trim long stress logs."
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: checks
+    attributes:
+      label: Test/lint output (if relevant)
+      description: "Output of shellcheck and the bash test/*.sh suites, if you ran them."
+      render: text

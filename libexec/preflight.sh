@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# preflight.sh — verify BIOS baseline before trusting stress results.
+# preflight.sh - verify BIOS baseline before trusting stress results.
 # Checks: CPU model, microcode version, RAPL power limits, RAM XMP/EXPO state,
 # and CPU frequency governor.
 # Usage: ./imcc check            (skips RAM/XMP check without root)
@@ -27,7 +27,7 @@ echo
 MODEL="$(tk_cpu_model)"
 echo "CPU:       $MODEL"
 if tk_is_affected_intel "$MODEL"; then
-  echo "           -> 13th/14th-gen Raptor Lake — in scope for Vmin-shift testing"
+  echo "           -> 13th/14th-gen Raptor Lake - in scope for Vmin-shift testing"
 else
   echo "           -> not a 13th/14th-gen Intel Core i5/i7/i9 (kit still usable, results advisory)"
 fi
@@ -42,13 +42,13 @@ if [ -n "${MICROCODE:-}" ] && printf '%s' "$MICROCODE" | grep -qE '^0x[0-9a-fA-F
   MC_INT=$(( MICROCODE ))
   THR_INT=$(( THRESHOLD ))
   if [ "$MC_INT" -lt "$THR_INT" ]; then
-    pf_warn; echo "microcode older than 0x12B degradation mitigation — update BIOS"
+    pf_warn; echo "microcode older than 0x12B degradation mitigation - update BIOS"
     pf_add_warn "microcode-old"
   else
     pf_pass; echo "microcode >= 0x12B"
   fi
 else
-  pf_info; echo "microcode value not parseable as hex — check manually"
+  pf_info; echo "microcode value not parseable as hex - check manually"
 fi
 echo
 
@@ -63,7 +63,7 @@ if [ -r "$PL1_FILE" ] && [ -r "$PL2_FILE" ]; then
   PL_STATE="$(tk_pl_state "$PL2")"
   printf "Power limits: PL1=%dW PL2=%dW  " "$PL1" "$PL2"
   if [ "$PL_STATE" = "unlimited" ]; then
-    pf_warn; echo "power limits removed — disable ASUS MultiCore Enhancement / set Intel Default"
+    pf_warn; echo "power limits removed - disable ASUS MultiCore Enhancement / set Intel Default"
     pf_add_hard "PL-unlimited"
   else
     pf_pass; echo "within expected range"
@@ -103,7 +103,7 @@ if dmidecode -t memory > /dev/null 2>&1; then
       "${RAM_TYPE:-unknown}" "${RAM_CFG_STR:-?}" "$JEDEC_BASE" "$XMP_STATE"
     case "$XMP_STATE" in
       on)
-        pf_warn; echo "XMP/EXPO enabled — disable to test at stock"
+        pf_warn; echo "XMP/EXPO enabled - disable to test at stock"
         pf_add_hard "XMP-on"
         ;;
       off)
@@ -117,7 +117,7 @@ if dmidecode -t memory > /dev/null 2>&1; then
     pf_info; echo "RAM/XMP:   dmidecode ran but no populated DIMM slot found"
   fi
 else
-  pf_info; echo "RAM/XMP:   needs root — re-run as: sudo ./imcc check"
+  pf_info; echo "RAM/XMP:   needs root - re-run as: sudo ./imcc check"
 fi
 echo
 
@@ -144,7 +144,7 @@ if [ -n "$HARD_CONFOUNDERS" ]; then
   else
     printf 'CONFOUNDERS PRESENT'
   fi
-  echo " — a FAIL may not be the CPU."
+  echo " - a FAIL may not be the CPU."
   echo "Fix: $HARD_CONFOUNDERS"
   [ -n "$SOFT_WARNINGS" ] && echo "Also review: $SOFT_WARNINGS"
   exit 1
@@ -154,7 +154,7 @@ else
   else
     printf 'BASELINE OK'
   fi
-  echo " — a FAIL can be trusted as the CPU."
+  echo " - a FAIL can be trusted as the CPU."
   [ -n "$SOFT_WARNINGS" ] && echo "Advisory: $SOFT_WARNINGS"
   exit 0
 fi

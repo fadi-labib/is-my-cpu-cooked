@@ -7,32 +7,33 @@
 ![Target: Intel 13th / 14th Gen](https://img.shields.io/badge/Intel-13th%20%2F%2014th%20Gen-0071C5?logo=intel&logoColor=white)
 ![No deps](https://img.shields.io/badge/runtime-pure%20bash-success)
 
-> **Is your Intel chip cooked?** Prove it — then build the evidence to RMA it.
+> Is your Intel chip cooked? Find out, then build the evidence to RMA it.
 
-`is-my-cpu-cooked` is a Linux stress-test suite that proves or disproves
-**Intel Raptor Lake (13th/14th-gen) Vmin-shift degradation** — the hardware
-defect behind random crashes, kernel `BUG()`s, and *silent* compute errors
-under ordinary workloads. It auto-detects the fastest-boosting cores on **any**
-13th/14th-gen chip, pins targeted single-thread pressure where the defect
-actually shows, surfaces failures live, and bundles a self-contained report for
-an Intel warranty claim.
+Intel's 13th and 14th-gen Raptor Lake chips have a degradation problem: over time
+the minimum voltage a core needs to compute correctly creeps up, and once it
+passes what the board actually applies at light single-core boost, the core
+starts returning wrong answers. You see it as random app crashes, kernel
+`BUG()`s, and compile errors that come and go for no obvious reason.
 
-One command does it all:
+This kit reproduces that on purpose. It detects the fastest-boosting cores on any
+13th/14th-gen chip, pins targeted single-thread pressure on them, catches a
+failure the instant it happens, and writes up a report you can hand to Intel
+support. It is pure bash and runs entirely offline.
+
+The whole thing is one command:
 
 ```console
-$ ./imcc ab --suspect 11        # stress the suspect core vs a healthy control
-…
+$ ./imcc ab --suspect 11        # stress the suspect core against a healthy one
+...
 +================================================+
 |  X  CPU FAILURE DETECTED                        |
 +================================================+
   tool:    ycruncher
   signal:  Checksum Mismatch
   core:    logical CPU 11
-…
+...
 conclusion: DEFECT ISOLATED: suspect core fails, control core clean under identical load
 ```
-
----
 
 ## Contents
 
@@ -40,13 +41,13 @@ conclusion: DEFECT ISOLATED: suspect core fails, control core clean under identi
 - [Install](#install)
 - [Quickstart](#quickstart)
 - [Commands](#commands)
-- [Usage & flags](#usage--flags)
+- [Usage and flags](#usage-and-flags)
 - [How it works](#how-it-works)
   - [Why single-core, light-load tests?](#why-single-core-light-load-tests)
   - [How the kit picks which cores to test](#how-the-kit-picks-which-cores-to-test)
   - [Live failure detection](#live-failure-detection)
   - [The tests](#the-tests-priority-order)
-- [Step 0 — eliminate the confounder](#step-0--eliminate-the-confounder-important)
+- [Step 0: eliminate the confounder](#step-0-eliminate-the-confounder-important)
 - [Reading results](#reading-results)
 - [The RMA report](#the-rma-report)
 - [Catching real crashes automatically](#catching-real-crashes-automatically)
@@ -57,69 +58,61 @@ conclusion: DEFECT ISOLATED: suspect core fails, control core clean under identi
 - [Contributing](#contributing)
 - [License](#license)
 
----
-
 ## Is this for me?
 
-**Symptoms that bring people here:**
+You probably landed here because of one of these:
 
-- Random application crashes or segmentation faults (SIGSEGV / signal 11)
+- Random app crashes or segfaults (SIGSEGV / signal 11)
 - `internal compiler error` when building software
-- Kernel `BUG()` / Oops in `dmesg` at light load (not during heavy all-core work)
+- Kernel `BUG()` / Oops in `dmesg` at light load, not during heavy all-core work
 - Game shader-compile crashes
-- Python, Firefox, or other apps faulting for no obvious reason
+- Python, Firefox, or other apps faulting for no reason you can pin down
 
-**Affected CPUs:** Intel 13th-gen (Raptor Lake) and 14th-gen (Raptor Lake
-Refresh) Core i5, i7, and i9 — model numbers in the range `i5/i7/i9-13xxx` and
-`-14xxx`. Nothing is hard-coded to a specific chip; the kit auto-detects the
-right cores on a 13600K, 13700K, 14700K, 14900K, and so on.
+Affected chips are Intel 13th-gen (Raptor Lake) and 14th-gen (Raptor Lake
+Refresh) Core i5, i7, and i9, so model numbers in the `i5/i7/i9-13xxx` and
+`-14xxx` range. Nothing is hard-coded to a specific part; the kit reads your
+topology at runtime and targets the right cores on a 13600K, 13700K, 14700K,
+and so on.
 
-**Platform:** Linux only. Pure-bash scripts driving `stress-ng`, `y-cruncher`,
-and `mprime` (Prime95). Windows users should run OCCT, y-cruncher, or Prime95
-directly.
-
----
+Linux only. It is a set of bash scripts driving `stress-ng`, `y-cruncher`, and
+`mprime` (Prime95). On Windows, run OCCT, y-cruncher, or Prime95 directly.
 
 ## Install
 
-No runtime beyond bash. Clone and run the one-time setup:
+There is no runtime beyond bash. Clone it and run the one-time setup:
 
 ```bash
 git clone https://github.com/fadi-labib/is-my-cpu-cooked.git
 cd is-my-cpu-cooked
-./imcc setup        # installs stress-ng (apt) + downloads y-cruncher & mprime into vendor/
+./imcc setup        # installs stress-ng (apt) and downloads y-cruncher + mprime into vendor/
 ```
 
-`setup` is idempotent and verifies download checksums. Everything else is driven
-through the single `./imcc` entrypoint.
-
----
+`setup` is idempotent and checks the downloads against known hashes. After that,
+everything goes through the single `./imcc` command.
 
 ## Quickstart
 
 ```bash
-./imcc setup               # once: install/fetch tools
+./imcc setup               # once: install and fetch tools
 sudo ./imcc check          # confirm BIOS is at stock (XMP off, microcode, power limits)
-./imcc run                 # full battery — finds a bad core with zero prior knowledge
+./imcc run                 # full battery; finds a bad core with no prior knowledge
 ./imcc report              # bundle the evidence into results/RMA-REPORT.md
 ```
 
-Already know which core is suspect (e.g. a `dmesg` crash named `CPU: 11`)?
-Go straight at it:
+If you already know which core is suspect (say a `dmesg` crash named `CPU: 11`),
+go straight at it:
 
 ```bash
-./imcc ab --suspect 11     # A/B: stress core 11's pair vs an auto-picked control
+./imcc ab --suspect 11     # A/B: stress core 11's pair against an auto-picked control
 ```
 
-Not sure what to run? `./imcc guide` prints the whole flow.
-
----
+Not sure what to run? `./imcc guide` walks through the whole flow.
 
 ## Commands
 
 ```console
 $ ./imcc help
-is-my-cpu-cooked — is your Intel chip toast?
+is-my-cpu-cooked - is your Intel chip toast?
 
 usage: ./imcc <command> [options]
 
@@ -137,34 +130,32 @@ usage: ./imcc <command> [options]
 New? start with:  ./imcc setup
 ```
 
----
+## Usage and flags
 
-## Usage & flags
-
-### `imcc run` — the stress battery
+### `imcc run`: the stress battery
 
 | Flag | Effect |
 |------|--------|
-| `--tests a,b,c` | Run only these tests (default: all — see [The tests](#the-tests-priority-order)) |
+| `--tests a,b,c` | Run only these tests (default: all, see [The tests](#the-tests-priority-order)) |
 | `--minutes N` | Duration per test phase (default `90`) |
-| `--quick` | Preset: 15 min — a smoke test, **not** conclusive |
+| `--quick` | Preset: 15 minutes. A smoke test, not conclusive |
 | `--soak` | Preset: 8-hour overnight soak |
 | `--loops N` | Repeat the whole battery N times |
 | `--volts` | Also log per-core MHz / voltage during the run |
 
-### `imcc ab` — suspect-vs-control A/B protocol
+### `imcc ab`: suspect-vs-control A/B protocol
 
 | Flag | Effect |
 |------|--------|
-| `--suspect CPU` | A logical CPU (as named in a `dmesg` crash line); its SMT sibling pair becomes the suspect, control is auto-picked |
-| `--minutes N` | Duration per tool, per leg (default `20`; 3 tools × 2 legs ≈ 6N min) |
-| `--check` | Setup verification only — print detected suspect/control and exit, no stress |
+| `--suspect CPU` | A logical CPU (as named in a `dmesg` crash line). Its SMT sibling pair becomes the suspect; the control is picked automatically |
+| `--minutes N` | Duration per tool, per leg (default `20`; 3 tools x 2 legs is roughly 6N min) |
+| `--check` | Setup verification only. Prints the detected suspect/control and exits, no stress |
 
-### `imcc check` — BIOS baseline
+### `imcc check`: BIOS baseline
 
-Run plain for microcode / power-limit / governor checks; run with `sudo` to also
-read RAM XMP/EXPO state via `dmidecode`. Exits `0` = `BASELINE OK`, `1` =
-confounders present.
+Run it plain for microcode, power-limit, and governor checks. Run it with `sudo`
+to also read RAM XMP/EXPO state via `dmidecode`. It exits `0` on `BASELINE OK`,
+`1` if confounders are present.
 
 ### Environment overrides
 
@@ -172,55 +163,56 @@ confounders present.
 |----------|---------|--------|
 | `TK_SUSPECT` / `TK_CONTROL` | `ab` | Force the suspect/control CPU pairs (e.g. `10,11` / `8,9`) |
 | `TK_TESTS` | `ab` | Tools per leg (default `core-target,stress-ng,prime95`) |
-| `TK_TARGET_CPU` | `run` | Pin `core-target` to a specific logical CPU / pair |
+| `TK_TARGET_CPU` | `run` | Pin `core-target` to a specific logical CPU or pair |
 | `SWEEP_MIN` | `run` | Explicit per-core minutes for `core-sweep` (default: `--minutes` split across P-cores) |
 | `TK_NOTES` | `run` | Free-text note recorded in the run summary |
-
----
 
 ## How it works
 
 ### Why single-core, light-load tests?
 
-The Vmin-shift defect lowers the minimum voltage a core needs to compute
-correctly. At full all-core Turbo the board applies high voltage and the chip
-looks fine. At **light single-core boost** — exactly what most everyday apps hit
-— the applied voltage is too low for a degraded core, causing transient faults.
-The kit pins tests to the highest-boosting (preferred) core(s) to trigger that
-condition deliberately.
+The defect lowers the minimum voltage a core needs to compute correctly. At full
+all-core Turbo the board applies a high voltage and the chip looks fine. The
+trouble shows up at light single-core boost, which is what most everyday apps
+actually hit: the applied voltage is too low for a degraded core, and you get
+transient faults. So the kit pins its tests to the highest-boosting (preferred)
+cores on purpose, to force exactly that condition.
 
 ### How the kit picks which cores to test
 
-**Works on any Raptor Lake chip** — core selection is detected from `lscpu` at
-runtime, nothing is hard-coded.
+It works on any Raptor Lake chip because core selection is read from `lscpu` at
+runtime. Nothing is baked in.
 
-**P-cores only.** The defect is a *P-core boost* phenomenon — it appears on the
+It targets P-cores only. The defect is a P-core boost problem; it shows up on the
 high-frequency performance cores, not the efficiency (E) cores, which never boost
 that high. A P-core is detected as a physical core with two SMT siblings
-(HyperThreading); with HT disabled it falls back to the top MAXMHZ tier (and says
-so). **E-cores are excluded.**
+(HyperThreading). With HT disabled the kit falls back to the top MAXMHZ tier and
+says so. Either way, E-cores are left out.
 
-**Two ways to find a bad core:**
+There are two ways to find a bad core:
 
-- **Sweep** (`./imcc run`, zero knowledge needed) — stresses each P-core in turn
-  (fastest first) and flags any that fail. The core that breaks while the others
-  pass *is* the evidence; the passing cores are their own control.
-- **A/B** (`./imcc ab`, suspect vs control) — runs the heavier FFT-class suite on
-  the **fastest-boosting P-core** (suspect, most likely to expose a degraded
-  Vmin), then the **next P-core** (control, a same-tier core that *should* pass).
-  The asymmetry isolates the defect to the core rather than the board/RAM/cooling.
+- **Sweep** (`./imcc run`, no knowledge needed). It stresses each P-core in turn,
+  fastest first, and flags any that fail. You don't have to know which core is
+  bad: the one that breaks while the rest pass is the evidence, and the cores
+  that pass act as the control.
+- **A/B** (`./imcc ab`, suspect vs control). It runs the heavier FFT-class suite
+  on the fastest-boosting P-core (the suspect, most likely to expose a degraded
+  Vmin), then the same suite on the next P-core (the control, which should pass).
+  When the suspect fails and the control passes the identical load, the fault is
+  in the core, not the board, RAM, or cooling.
 
-Saw a specific CPU in a crash? `./imcc ab --suspect 11` expands `11` to its
-sibling pair and auto-picks a control. Override either side with
-`TK_SUSPECT=10,11 TK_CONTROL=8,9 ./imcc ab`.
+Saw a specific CPU in a crash? `./imcc ab --suspect 11` expands `11` into its
+sibling pair and picks a control for you. You can also set both sides yourself
+with `TK_SUSPECT=10,11 TK_CONTROL=8,9 ./imcc ab`.
 
 ### Live failure detection
 
-Every stress tool streams through a watchdog. The instant a tool emits an error
-signature — a y-cruncher checksum mismatch, a Prime95 `FATAL ERROR`, a stress-ng
-verify failure — the kit prints a banner naming the offending logical core and
-**kills that test immediately**, instead of idling out the remaining duration
-(y-cruncher otherwise blocks on a `Press ENTER` prompt after an error):
+Every stress tool runs through a watchdog. The moment a tool emits an error
+signature (a y-cruncher checksum mismatch, a Prime95 `FATAL ERROR`, a stress-ng
+verify failure) the kit prints a banner naming the offending logical core and
+kills that test immediately, instead of idling out the rest of the duration.
+That last part matters: y-cruncher otherwise sits on a `Press ENTER` prompt after
+an error and the run looks hung.
 
 ```text
 +================================================+
@@ -231,38 +223,35 @@ verify failure — the kit prints a banner naming the offending logical core and
   core:    logical CPU 11
 ```
 
-The full output still lands in the run's log — you just don't have to babysit
-the terminal to know a run failed.
+The full output still lands in the run's log, so you don't have to watch the
+terminal to know a run failed.
 
 ### The tests (priority order)
 
 | Test | What it catches |
 |------|-----------------|
-| `core-target` | Single-thread pinned to the preferred (highest-boosting) core — the Vmin-shift headline test |
-| `core-sweep` | Per-P-core sweep; localises *which* core(s) fail |
+| `core-target` | Single thread pinned to the preferred (highest-boosting) core. The headline Vmin-shift test |
+| `core-sweep` | Per-P-core sweep that localises which core(s) fail |
 | `stress-ng` | All-core and single-core with result verification |
-| `y-cruncher` | All-core self-verifying extended-precision arithmetic |
-| `compile` | Real-world workload: triggers `internal compiler error` / segfault regressions |
-| `prime95` | Small-FFT torture; rounding errors and hardware faults |
+| `y-cruncher` | All-core, self-verifying extended-precision arithmetic |
+| `compile` | A real workload: triggers `internal compiler error` / segfault regressions |
+| `prime95` | Small-FFT torture for rounding errors and hardware faults |
 
----
+## Step 0: eliminate the confounder (important)
 
-## Step 0 — eliminate the confounder (important)
-
-**A FAIL only indicts the CPU if the platform is at stock.** In BIOS, before any
-test: set **Intel Default Settings** and disable **XMP / EXPO**. A board voltage
-offset, undervolt, or unstable RAM overclock produces identical symptoms — remove
-those variables first. (If you re-enable them and failures return, that's *still*
-the CPU: a degraded Vmin can't handle conditions the chip was once stable on.)
+A FAIL only points at the CPU if the platform is at stock. In BIOS, before any
+test, set Intel Default Settings and disable XMP / EXPO. A board voltage offset,
+an undervolt, or an unstable RAM overclock produces the same symptoms, so clear
+those variables first. (If you re-enable them later and the failures come back,
+that is still the CPU: a degraded Vmin can't handle conditions the chip used to
+be stable on.)
 
 `./imcc check` verifies this for you:
 
 ```bash
 ./imcc check            # microcode, power limits, governor
-sudo ./imcc check       # + RAM/XMP via dmidecode
+sudo ./imcc check       # adds RAM/XMP via dmidecode
 ```
-
----
 
 ## Reading results
 
@@ -277,30 +266,28 @@ results/userspace-traps.log  userspace SIGSEGV / trap events
 | Verdict | Meaning |
 |---------|---------|
 | `PASS` | No errors detected |
-| `FAIL (errors)` | Compute errors or process faults detected — **the strong signal** |
-| `THERMAL` | Peak package temp ≥ 95 °C — check cooling before blaming the CPU |
+| `FAIL (errors)` | Compute errors or process faults detected. This is the strong signal |
+| `THERMAL` | Peak package temp hit 95 °C or more. Check cooling before blaming the CPU |
 | `CRASHED (kernel BUG)` | A kernel fault captured from real desktop use |
-
----
 
 ## The RMA report
 
-`./imcc report` bundles everything into `results/RMA-REPORT.md` — a
-**self-contained** document built to stand on its own in front of Intel support.
-It leads with the controlled stress reproduction (the tool's *own* output, not a
-paraphrase), then the run history and corroborating real-world crashes:
+`./imcc report` bundles everything into `results/RMA-REPORT.md`, written to stand
+on its own in front of Intel support. It leads with the stress reproduction (the
+tool's own output, not a summary of it), then the run history and any real-world
+crashes:
 
 ```markdown
 ## Controlled reproduction (stress-test A/B)
 
-### Suspect leg — CPU(s) 10,11 — verdict: FAIL (errors)
+### Suspect leg - CPU(s) 10,11 - verdict: FAIL (errors)
     Running BKT: Passed
     Exception Encountered: AlgorithmFailedException
     Checksum Mismatch
     Error(s) encountered on logical core 10.
     Stress test failed with 1 error.
 
-### Control leg — CPU(s) 8,9 — verdict: THERMAL (0 errors)
+### Control leg - CPU(s) 8,9 - verdict: THERMAL (0 errors)
     Running BKT: Passed
     Running BBP: Passed
     Running SFTv4: Passed
@@ -309,14 +296,12 @@ paraphrase), then the run history and corroborating real-world crashes:
     Running VT3: Passed
 ```
 
-Both legs reach the same peak temperature, so the asymmetry — suspect fails,
-control passes the *identical* load — isolates the fault to the core, not the
+Both legs reach the same peak temperature, so the asymmetry (suspect fails,
+control passes the identical load) puts the fault on the core rather than the
 board, RAM, or cooling. The report also records CPU identity (model, CPUID,
-microcode) and a reminder that the **serial/batch number is laser-etched on the
-chip lid (IHS) / retail box** — photograph it and attach it with your proof of
-purchase.
-
----
+microcode) and reminds you that the serial/batch number is laser-etched on the
+chip lid (IHS) and printed on the retail box, so photograph it and attach it with
+your proof of purchase.
 
 ## Catching real crashes automatically
 
@@ -324,91 +309,80 @@ purchase.
 ./imcc watch
 ```
 
-Installs a user-level systemd unit that scans the journal each boot and appends
-new kernel BUGs / userspace traps to `results/`. Real-world fault evidence is
-often more persuasive than synthetic test results.
-
----
+This installs a user-level systemd unit that scans the journal each boot and
+appends new kernel BUGs and userspace traps to `results/`. A crash that happened
+during normal use is often more persuasive than a synthetic test result.
 
 ## RMA guidance
 
-Intel has publicly acknowledged the defect and extended the warranty on affected
-processors to **5 years from purchase date** — degraded chips are eligible for
-**replacement or refund** even past the original 3-year window.
+Intel has acknowledged the defect and extended the warranty on affected
+processors to 5 years from the purchase date, so a degraded chip is eligible for
+replacement or refund even past the original 3-year window.
 
-> The 0x12B+ microcode update (late 2023) lowers boost voltage to *prevent
-> further* degradation, but **does not reverse damage already done**. A chip that
-> crashed before the update still fails after it — proof the silicon, not the
-> firmware, is the problem.
+> The 0x12B+ microcode update (late 2023) lowers boost voltage to slow further
+> degradation, but it does not undo damage already done. A chip that failed
+> before the update still fails after it, which is the point: the silicon is the
+> problem, not the firmware.
 
 1. Run the kit and collect `results/RMA-REPORT.md` (`./imcc report`).
-2. Have your purchase proof ready (receipt / order confirmation).
+2. Have your purchase proof ready (receipt or order confirmation).
 3. Open a case at <https://www.intel.com/content/www/us/en/support/contact-support.html>.
-4. Attach the report + a photo of the CPU lid/box serial, and describe the
+4. Attach the report plus a photo of the chip/box serial, and describe the
    real-world symptoms.
-
----
 
 ## Control experiment (for extra confidence)
 
-Drop the CPU a notch — disable Turbo, apply a small negative voltage offset, or
-lower the max multiplier — and if crashes stop, that's strong independent proof:
-a healthy chip is stable at rated clocks; a degraded one is only stable when
-slowed. Run with `--volts` to capture clock speeds during tests.
-
----
+Drop the CPU a notch (disable Turbo, apply a small negative voltage offset, or
+lower the max multiplier) and see if the crashes stop. If they do, that is strong
+independent proof: a healthy chip is stable at rated clocks, and a degraded one
+is only stable when you slow it down. Run with `--volts` to capture clock speeds
+during the tests.
 
 ## Safety
 
-Stress testing drives the CPU to sustained high power and temperature. Ensure
-your cooler is properly seated and capable. Don't run extended tests (>90 min) if
-you already see thermal throttling under normal use. Results above 95 °C are
-flagged `THERMAL` and are **not** attributable to a CPU defect — fix cooling
-first.
+Stress testing drives the CPU to sustained high power and temperature, so make
+sure your cooler is seated properly and can keep up. Don't run extended tests
+(over 90 minutes) if you already see thermal throttling under normal use. Results
+above 95 °C are flagged `THERMAL` and are not attributable to a CPU defect, so
+fix cooling first.
 
-**Use at your own risk**, as-is under the MIT License.
-
----
+Use at your own risk, as-is under the MIT License.
 
 ## Known limitations
 
-A deliberately narrow *proven* envelope — be aware of it before trusting results
-on hardware unlike the author's:
+The proven envelope is deliberately narrow. Keep it in mind before trusting
+results on hardware unlike the author's:
 
-- **Tested on Ubuntu 24.04 only** (kernel 6.17). It should work on any modern
-  systemd-based Linux distribution, but other distros/kernels are unverified.
-- **Validated against a single physical CPU** — the author's Intel **i9-14900K**.
-  The cross-chip core detection (P/E split, suspect/control selection) is
-  unit-tested against synthetic `lscpu` topologies for other layouts, but has not
-  been run end-to-end on a different physical Raptor Lake model.
-- **AI-assisted development.** The kit was built and **extensively code-reviewed
-  with [Claude Code](https://claude.com/claude-code)** (spec → plan →
-  implementation, with adversarial review per change). That caught real bugs, but
-  is not a substitute for broad real-world testing.
-- **No guarantees on other machines.** Treat results on untested hardware as
-  indicative, not authoritative — and always confirm a FAIL with the
-  [baseline check](#step-0--eliminate-the-confounder-important) at stock BIOS.
+- Tested on Ubuntu 24.04 only. It should work on any modern systemd-based Linux
+  distribution, but other distros and kernels are unverified.
+- Validated against a single physical CPU, one 13th/14th-gen Intel Core chip. The
+  cross-chip core detection (P/E split, suspect/control selection) is unit-tested
+  against synthetic `lscpu` topologies for other layouts, but it has not been run
+  end-to-end on a different physical Raptor Lake model.
+- Built and reviewed heavily with [Claude Code](https://claude.com/claude-code)
+  (spec, plan, implementation, with review per change). That caught real bugs,
+  but it is not a substitute for broad real-world testing.
+- No guarantees on other machines. Treat results on untested hardware as
+  indicative rather than authoritative, and always confirm a FAIL with the
+  [baseline check](#step-0-eliminate-the-confounder-important) at stock BIOS.
 
-**Contributions are very welcome** — especially test runs and `RMA-REPORT.md`
-results from other 13th/14th-gen models, which directly widen the proven envelope
-above.
-
----
+Contributions are very welcome, especially test runs and `RMA-REPORT.md` results
+from other 13th/14th-gen models. Those are what widen the envelope above.
 
 ## Contributing
 
-Issues and PRs welcome — especially results from other Raptor Lake models to
-broaden the dataset. The kit is pure bash with a dependency-free test harness:
+Issues and PRs are welcome. Results from other Raptor Lake models are the most
+useful thing you can send. The kit is pure bash with a dependency-free test
+harness:
 
 ```bash
 shellcheck -S warning imcc libexec/*.sh tests/*.sh watcher/*.sh lib/*.sh test/*.sh
 bash test/test-common.sh && bash test/test-watchdog.sh && bash test/test-imcc.sh
 ```
 
-Both run in CI on every push. Please keep them green.
-
----
+Both run in CI on every push. Please keep them green. See
+[CONTRIBUTING.md](CONTRIBUTING.md) for conventions.
 
 ## License
 
-MIT © 2026 Fadi Labib — see [LICENSE](LICENSE).
+MIT, Copyright (c) 2026 Fadi Labib. See [LICENSE](LICENSE).

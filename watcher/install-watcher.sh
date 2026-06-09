@@ -2,7 +2,7 @@
 # Installs a user systemd service + timer that runs crash-scan at login and
 # every 10 minutes thereafter, so crash signatures are captured close to fault
 # time (post-reboot journal timestamps can be skewed by RTC drift during a hard
-# freeze — live capture is what dated the Jun 6 crash correctly).
+# freeze - live capture is what dated the Jun 6 crash correctly).
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 UNIT_DIR="$HOME/.config/systemd/user"; mkdir -p "$UNIT_DIR"

@@ -24,7 +24,7 @@ if [ -r "$_PL2_FILE" ]; then
   _PL2_UW="$(cat "$_PL2_FILE" 2>/dev/null || echo 0)"
   _PL2=$(( _PL2_UW / 1000000 ))
   if [ "$(tk_pl_state "$_PL2")" = "unlimited" ]; then
-    echo "WARNING: CPU power limits look unlimited (MCE?) — run ./imcc check; a FAIL may reflect the board, not the chip."
+    echo "WARNING: CPU power limits look unlimited (MCE?) - run ./imcc check; a FAIL may reflect the board, not the chip."
   fi
   unset _PL2_UW _PL2
 fi
@@ -52,7 +52,7 @@ declare -A SCRIPT=(
 )
 
 # 1) Record any previous crashed run before starting, then mark each one handled
-#    (write FINISHED) so a single incident is counted ONCE — not re-logged as a
+#    (write FINISHED) so a single incident is counted ONCE - not re-logged as a
 #    new CRASHED row on every subsequent launch.
 crashed="$(tk_scan_crashed "$RESULTS")"
 if [ -n "$crashed" ]; then
@@ -72,7 +72,7 @@ _tk_abort_runs() {
   local d
   for d in "$RESULTS"/*/; do
     [ -f "$d/START" ] && [ ! -f "$d/FINISHED" ] && \
-      echo "aborted $(date '+%F %T') — interrupted, not a crash" > "$d/FINISHED"
+      echo "aborted $(date '+%F %T') - interrupted, not a crash" > "$d/FINISHED"
   done
   tk_temp_sampler_stop; [ "$VOLTS" -eq 1 ] && tk_volts_sampler_stop
 }

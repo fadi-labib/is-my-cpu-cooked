@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# report.sh — Bundles testkit results into a single Markdown file suitable for
+# report.sh - Bundles testkit results into a single Markdown file suitable for
 # attaching to an Intel support / RMA ticket.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -8,7 +8,7 @@ RESULTS="$HERE/../results"
 
 # ── guard: no results yet ──────────────────────────────────────────────────────
 if [ ! -d "$RESULTS" ] || [ -z "$(ls -A "$RESULTS" 2>/dev/null)" ]; then
-  echo "no results yet — run ./imcc run first"
+  echo "no results yet - run ./imcc run first"
   exit 1
 fi
 RESULTS="$(cd "$RESULTS" && pwd)"  # normalize (drop the libexec/.. prefix in paths)
@@ -16,7 +16,7 @@ RESULTS="$(cd "$RESULTS" && pwd)"  # normalize (drop the libexec/.. prefix in pa
 # Find run dirs (dirs with a timestamp name, not the flat files)
 mapfile -t RUN_DIRS < <(find "$RESULTS" -mindepth 1 -maxdepth 1 -type d | sort)
 if [ "${#RUN_DIRS[@]}" -eq 0 ]; then
-  echo "no results yet — run ./imcc run first"
+  echo "no results yet - run ./imcc run first"
   exit 1
 fi
 
@@ -52,7 +52,7 @@ csv_to_md_table() {
     }
     {
       # cols 1-6 are comma-free; notes (col 7) may itself contain commas
-      # (e.g. "suspect cpus=10,11") — rejoin everything from field 7 on so the
+      # (e.g. "suspect cpus=10,11") - rejoin everything from field 7 on so the
       # comma does not split the markdown table into extra columns.
       n=split($0,f,",")
       notes=f[7]; for(i=8;i<=n;i++) notes=notes "," f[i]
@@ -126,7 +126,7 @@ cpu_identity() {
 
 # ── controlled A/B reproduction evidence ──────────────────────────────────────
 # For every suspect/control leg recorded in runs.csv, embed the verbatim
-# (ANSI-stripped) y-cruncher excerpt from that leg's core-target.log — the
+# (ANSI-stripped) y-cruncher excerpt from that leg's core-target.log - the
 # failure block for a suspect core, the passing block for a control core. This
 # is the primary, self-contained evidence: the tool's own output showing the
 # defect reproduces on one core and not on another under identical load.
@@ -145,7 +145,7 @@ ab_reproduction() {
     cpus="$(printf '%s' "$notes" | sed -n 's/.*cpus=\([0-9,]*\).*/\1/p')"
     d="$RESULTS/$ts"; log="$d/core-target.log"
     any=1
-    echo "### ${label^} leg — CPU(s) ${cpus:-?} — run $ts — verdict: $verdict"
+    echo "### ${label^} leg - CPU(s) ${cpus:-?} - run $ts - verdict: $verdict"
     echo ""
     if [ -f "$log" ]; then
       # Convert y-cruncher's in-place CR redraws to newlines, strip ANSI, squeeze
@@ -158,7 +158,7 @@ ab_reproduction() {
         excerpt="$(printf '%s\n' "$strip" | grep -aE 'Running (BKT|BBP|SFTv4|FFTv4|N63|VT3): Passed' | awk 'NF && !seen[$0]++' | head -8 || true)"
       fi
       echo '```'
-      printf '%s\n' "${excerpt:-(no matching y-cruncher lines captured — see full log)}"
+      printf '%s\n' "${excerpt:-(no matching y-cruncher lines captured - see full log)}"
       echo '```'
       echo ""
       echo "_Full log: results/$ts/core-target.log_"
@@ -173,7 +173,7 @@ ab_reproduction() {
 
 # ── write report ──────────────────────────────────────────────────────────────
 {
-  echo "# Intel RMA Report — CPU Degradation Testkit"
+  echo "# Intel RMA Report - CPU Degradation Testkit"
   echo ""
   echo "Generated: $REPORT_DATE"
   echo ""
@@ -191,7 +191,7 @@ ab_reproduction() {
   echo "| BIOS | $(bios_version) / $(bios_date) |"
   echo "| Preferred cores (auto-detected) | $(tk_detect_preferred_cpus) |"
   echo "| Kernel | $(uname -r) |"
-  echo "| Serial / batch (FPO) | not software-readable — read off the CPU lid (IHS) or the retail-box label; attach a photo of it plus proof of purchase |"
+  echo "| Serial / batch (FPO) | not software-readable - read off the CPU lid (IHS) or the retail-box label; attach a photo of it plus proof of purchase |"
   echo ""
 
   if [ -n "$SYSINFO" ]; then
@@ -208,14 +208,14 @@ ab_reproduction() {
   echo "---"
   echo ""
 
-  # 2. Controlled reproduction (A/B) — the primary evidence
+  # 2. Controlled reproduction (A/B) - the primary evidence
   echo "## Controlled reproduction (stress-test A/B)"
   echo ""
   echo "Under **Intel Default BIOS settings with XMP/EXPO disabled** and current"
   echo "microcode, y-cruncher's self-verifying arithmetic was pinned to one core at a"
   echo "time. The defect reproduces as a **\`Checksum Mismatch\`** that y-cruncher"
   echo "attributes to a **specific logical core**, within seconds, while a different"
-  echo "P-core runs the *identical* load cleanly — isolating the fault to the core"
+  echo "P-core runs the *identical* load cleanly - isolating the fault to the core"
   echo "rather than the board, memory, or cooling (both legs reach the same peak"
   echo "temperature). Each leg's verbatim tool output is below; full logs are in"
   echo "\`results/<timestamp>/\`."
@@ -249,9 +249,9 @@ ab_reproduction() {
   echo ""
 
   # 5. Corroborating real-world failures (kernel)
-  echo "## Corroborating real-world failures — kernel"
+  echo "## Corroborating real-world failures - kernel"
   echo ""
-  echo "Kernel BUG()/Oops events captured during ordinary desktop use — the"
+  echo "Kernel BUG()/Oops events captured during ordinary desktop use - the"
   echo "real-world impact of the same instability the stress test reproduces above."
   echo ""
   fenced_log "$RESULTS/crashes.log"
@@ -260,7 +260,7 @@ ab_reproduction() {
   echo ""
 
   # 6. Corroborating real-world failures (userspace)
-  echo "## Corroborating real-world failures — userspace"
+  echo "## Corroborating real-world failures - userspace"
   echo ""
   fenced_log "$RESULTS/userspace-traps.log"
   echo ""

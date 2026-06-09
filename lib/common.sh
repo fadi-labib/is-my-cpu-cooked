@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# lib/common.sh — pure, testable helpers for the CPU testkit.
+# lib/common.sh - pure, testable helpers for the CPU testkit.
 # Parsing functions take input as args/paths; they never call lscpu/sensors.
 
 tk_version() { echo "testkit-1.0"; }
 
 # Read `lscpu -e=CPU,CORE,MAXMHZ` text on stdin; echo ONE representative logical
 # CPU per *P-core* (the lowest-numbered thread of each), ordered by MAXMHZ
-# descending then CPU ascending — highest-boosting cores first. E-cores are
+# descending then CPU ascending - highest-boosting cores first. E-cores are
 # EXCLUDED: the Vmin-shift defect is a P-core boost phenomenon.
 #   P-core detection: a CORE id with >=2 logical CPUs (SMT/HyperThreading).
 #   Fallback when no core has >=2 CPUs (HT disabled or non-hybrid): treat cores
@@ -35,7 +35,7 @@ tk_pcore_reps() {
 tk_detect_pcore_reps() {
   local txt; txt="$(lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null)"
   if ! printf '%s\n' "$txt" | awk 'NR>1{c[$2]++} END{for(k in c) if(c[k]>=2) f=1; exit !f}'; then
-    echo "warning: no SMT siblings detected — guessing P-cores by MAXMHZ tier (E-core exclusion may be imperfect)" >&2
+    echo "warning: no SMT siblings detected - guessing P-cores by MAXMHZ tier (E-core exclusion may be imperfect)" >&2
   fi
   printf '%s\n' "$txt" | tk_pcore_reps
 }
@@ -72,7 +72,7 @@ tk_preferred_cpus() {
   ' | sort -n | tr "\n" " " | sed "s/ $//"
 }
 
-# Convenience wrapper used by scripts (impure — calls lscpu).
+# Convenience wrapper used by scripts (impure - calls lscpu).
 tk_detect_preferred_cpus() { lscpu -e=CPU,CORE,MAXMHZ 2>/dev/null | tk_preferred_cpus; }
 
 # tk_scan_log <tool> <logfile> -> echoes matched FAIL lines; rc 0=clean, 1=errors found.
@@ -90,7 +90,7 @@ tk_summary_append() {
   local md="$dir/SUMMARY.md" csv="$dir/runs.csv"
   if [ ! -f "$md" ]; then
     {
-      echo "# CPU Testkit — Run Summary"
+      echo "# CPU Testkit - Run Summary"
       echo
       echo "| timestamp | min | tests | verdict | max pkg °C | errors | notes |"
       echo "|-----------|-----|-------|---------|-----------|--------|-------|"
@@ -103,7 +103,7 @@ tk_summary_append() {
   echo "$ts,$min,$tests,$verdict,$pkg,$errs,$notes" >> "$csv"
 }
 
-# Markers — each fsync'd so they survive a hard reset.
+# Markers - each fsync'd so they survive a hard reset.
 tk_mark_start()    { echo "started $(date '+%F %T')" > "$1/START"; sync "$1/START" 2>/dev/null || sync; }
 tk_mark_progress() { echo "$2 @ $(date '+%F %T')" > "$1/progress"; sync "$1/progress" 2>/dev/null || sync; }
 tk_mark_finished() { echo "finished $(date '+%F %T')" > "$1/FINISHED"; sync "$1/FINISHED" 2>/dev/null || sync; }
@@ -115,7 +115,7 @@ tk_scan_crashed() {
     [ -f "$d/START" ] || continue
     [ -f "$d/FINISHED" ] && continue
     prog="$(cat "$d/progress" 2>/dev/null || echo 'unknown test')"
-    echo "CRASHED (reset) — run $(basename "$d") died during: $prog"
+    echo "CRASHED (reset) - run $(basename "$d") died during: $prog"
   done
 }
 
@@ -130,7 +130,7 @@ tk_max_temp() {
 
 # tk_sig_pattern <tool-set> -> echoes the error-detection regex for a tool.
 # Single source of truth shared by tk_scan_log (post-run) and tk_watch_stream (live).
-# NOTE: no bare '[Ee]rror' for ycruncher — its settings echo ("Stop on Error: Enabled")
+# NOTE: no bare '[Ee]rror' for ycruncher - its settings echo ("Stop on Error: Enabled")
 # would false-positive every run. Real failures print "Failed" / "Exception".
 tk_sig_pattern() {
   case "$1" in
@@ -169,11 +169,11 @@ tk_failure_banner() {
 # tk_watch_stream <logfile> <tool-set> : reads lines on stdin, appends each to
 # <logfile> AND echoes it (live passthrough). On the FIRST line matching the
 # tool's signature it keeps draining the immediate error burst (bounded by a 2s
-# read timeout so a post-error hang can't block the watchdog) so the full block —
-# including the "logical core N" attribution line that often follows — lands in
+# read timeout so a post-error hang can't block the watchdog) so the full block,
+# including the "logical core N" attribution line that often follows - lands in
 # the log, then prints a failure banner naming the core (if found) and returns 1.
 # Returns 0 if the stream ends with no match. Pure w.r.t. process control (no
-# killing) — the caller owns that.
+# killing) - the caller owns that.
 tk_watch_stream() {
   local log="$1" set="$2" pat line l2 core=""
   pat="$(tk_sig_pattern "$set")"
@@ -197,7 +197,7 @@ tk_watch_stream() {
 # tk_run_watched <logfile> <tool-set> -- <command> [args...]
 # Runs <command> with stdin from /dev/null, streaming stdout+stderr through
 # tk_watch_stream (which tees to <logfile> and live-echoes). On the first error
-# signature it kills the command immediately and returns 1 — no waiting out a
+# signature it kills the command immediately and returns 1 - no waiting out a
 # timeout grace. Returns 0 on clean exit, 2 if the command exits non-zero with no
 # recognized error text (died abnormally). The matcher runs in THIS shell (via a
 # FIFO) so its result is captured directly.
@@ -255,7 +255,7 @@ tk_temp_sampler_stop() {
 }
 
 TK_VOLTS_PID=""
-# tk_volts_sampler_start <run_dir> <interval> — logs per-core MHz (and voltage if available)
+# tk_volts_sampler_start <run_dir> <interval> - logs per-core MHz (and voltage if available)
 tk_volts_sampler_start() {
   local dir="$1" iv="${2:-5}"
   ( while true; do
@@ -298,11 +298,11 @@ tk_ab_interpret() {
   if   [ "$sbad" -eq 1 ] && [ "$cbad" -eq 0 ]; then
     echo "DEFECT ISOLATED: suspect core fails, control core clean under identical load"
   elif [ "$sbad" -eq 1 ] && [ "$cbad" -eq 1 ]; then
-    echo "SYSTEMIC: both cores fail — suspect cooling/board/RAM or chip-wide issue, not a single core"
+    echo "SYSTEMIC: both cores fail - suspect cooling/board/RAM or chip-wide issue, not a single core"
   elif [ "$sbad" -eq 0 ] && [ "$cbad" -eq 1 ]; then
-    echo "UNEXPECTED: control failed while suspect passed — re-check assumptions before concluding"
+    echo "UNEXPECTED: control failed while suspect passed - re-check assumptions before concluding"
   else
-    echo "NOT REPRODUCED: both cores clean this session — prior crash evidence stands; consider a longer run"
+    echo "NOT REPRODUCED: both cores clean this session - prior crash evidence stands; consider a longer run"
   fi
 }
 
