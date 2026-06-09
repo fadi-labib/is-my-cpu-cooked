@@ -53,6 +53,7 @@ conclusion: DEFECT ISOLATED: suspect core fails, control core clean under identi
 - [RMA guidance](#rma-guidance)
 - [Control experiment](#control-experiment-for-extra-confidence)
 - [Safety](#safety)
+- [Known limitations](#known-limitations)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -366,6 +367,31 @@ flagged `THERMAL` and are **not** attributable to a CPU defect — fix cooling
 first.
 
 **Use at your own risk**, as-is under the MIT License.
+
+---
+
+## Known limitations
+
+A deliberately narrow *proven* envelope — be aware of it before trusting results
+on hardware unlike the author's:
+
+- **Tested on Ubuntu 24.04 only** (kernel 6.17). It should work on any modern
+  systemd-based Linux distribution, but other distros/kernels are unverified.
+- **Validated against a single physical CPU** — the author's Intel **i9-14900K**.
+  The cross-chip core detection (P/E split, suspect/control selection) is
+  unit-tested against synthetic `lscpu` topologies for other layouts, but has not
+  been run end-to-end on a different physical Raptor Lake model.
+- **AI-assisted development.** The kit was built and **extensively code-reviewed
+  with [Claude Code](https://claude.com/claude-code)** (spec → plan →
+  implementation, with adversarial review per change). That caught real bugs, but
+  is not a substitute for broad real-world testing.
+- **No guarantees on other machines.** Treat results on untested hardware as
+  indicative, not authoritative — and always confirm a FAIL with the
+  [baseline check](#step-0--eliminate-the-confounder-important) at stock BIOS.
+
+**Contributions are very welcome** — especially test runs and `RMA-REPORT.md`
+results from other 13th/14th-gen models, which directly widen the proven envelope
+above.
 
 ---
 
