@@ -16,6 +16,7 @@ usage: ./imcc <command> [options]
   check      verify BIOS baseline (sudo for full RAM/XMP check)
   run        run the stress test            <- most people start here
   ab         suspect-vs-control A/B protocol
+  serial     read the CPU serial (ATPO) from a photo of the lid
   report     build the RMA report bundle
   watch      install the background crash scanner
   warranty   how to file an Intel warranty claim (RMA)
@@ -56,7 +57,10 @@ refund.
 
 Steps:
   1. Generate the evidence bundle:   ./imcc report   (-> results/RMA-REPORT.md)
-  2. Have your purchase proof ready (receipt / order confirmation).
+  2. Have your purchase proof ready (receipt / order confirmation), plus the
+     batch (FPO) and serial (ATPO) from the chip lid. The serial is not
+     software-readable - decode it from a photo: ./imcc serial <photo-of-lid>
+
   3. Open a support case:
        $INTEL_SUPPORT_URL
   4. Attach results/RMA-REPORT.md and describe the real-world symptoms
@@ -75,6 +79,7 @@ case "$cmd" in
   check)          exec "$HERE/libexec/preflight.sh" "$@" ;;
   run)            exec "$HERE/libexec/run-all.sh" "$@" ;;
   ab)             exec "$HERE/libexec/ab-evidence.sh" "$@" ;;
+  serial)         exec "$HERE/libexec/serial.sh" "$@" ;;
   report)         exec "$HERE/libexec/report.sh" "$@" ;;
   watch)          exec "$HERE/watcher/install-watcher.sh" "$@" ;;
   warranty|rma)   warranty ;;
