@@ -131,7 +131,7 @@ cpu_identity() {
 # is the primary, self-contained evidence: the tool's own output showing the
 # defect reproduces on one core and not on another under identical load.
 ab_reproduction() {
-  local csv="$RESULTS/runs.csv" any=0 row ts verdict notes label cpus d log strip excerpt
+  local csv="$RESULTS/runs.csv" any=0 row ts verdict notes label cpus d log strip excerpt errs
   [ -f "$csv" ] || { echo "no A/B (suspect/control) runs recorded"; return 0; }
   while IFS= read -r row; do
     notes="$(printf '%s' "$row" | cut -d, -f7-)"
@@ -153,13 +153,25 @@ ab_reproduction() {
       strip="$(sed 's/\x1b\[[0-9;]*m//g' "$log" | tr '\r' '\n' \
         | sed 's/[[:space:]]\{1,\}/ /g; s/^ //; s/ *$//')"
       if [ "$label" = "suspect" ]; then
-        excerpt="$(printf '%s\n' "$strip" | grep -aE 'Running (BKT|BBP|SFTv4|FFTv4|N63|VT3): (Passed|Failed)|Exception Encountered|Checksum Mismatch|Redundancy Check|Error\(s\) encountered on logical core|Stress test failed' | awk 'NF && !seen[$0]++' | head -10 || true)"
+        # Match both y-cruncher output modes: the sequential "Running X: Passed/
+        # Failed" summary AND the Component Stress Tester live-table markers
+        # (Anomaly/Coefficient/unstable/error counts), so a failing suspect leg
+        # is never reported as empty just because of which mode produced the log.
+        excerpt="$(printf '%s\n' "$strip" | grep -aE 'Running (BKT|BBP|SFTv4|FFTv4|N63|VT3): (Passed|Failed)|Exception Encountered|Checksum Mismatch|Redundancy Check( Failed)?|Error\(s\) encountered on logical core|Anomaly|Coefficient|[Uu]nstable|Stress test failed' | awk 'NF && !seen[$0]++' | head -10 || true)"
       else
         excerpt="$(printf '%s\n' "$strip" | grep -aE 'Running (BKT|BBP|SFTv4|FFTv4|N63|VT3): Passed' | awk 'NF && !seen[$0]++' | head -8 || true)"
       fi
-      echo '```'
-      printf '%s\n' "${excerpt:-(no matching y-cruncher lines captured - see full log)}"
-      echo '```'
+      if [ -n "$excerpt" ]; then
+        echo '```'
+        printf '%s\n' "$excerpt"
+        echo '```'
+      else
+        # No parseable tool output (e.g. y-cruncher's live-table redraws were not
+        # flushed to the log). Fall back to the verdict and error count the
+        # testkit recorded for this leg, rather than an empty block.
+        errs="$(printf '%s' "$row" | cut -d, -f6)"
+        echo "_No tool output captured in this leg's log (y-cruncher live-table mode); the testkit recorded verdict **${verdict:-?}**${errs:+, ${errs} error(s)} for this run. See the full log._"
+      fi
       echo ""
       echo "_Full log: results/$ts/core-target.log_"
     else
