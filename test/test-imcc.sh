@@ -43,7 +43,7 @@ assert_rc "$rc" 0 "version exits 0"
 assert_eq "$out" "testkit-1.0" "version prints tk_version"
 
 # dispatch-table integrity: every delegating target exists and is executable
-for t in setup.sh preflight.sh run-all.sh ab-evidence.sh serial.sh report.sh; do
+for t in setup.sh preflight.sh run-all.sh ab-evidence.sh serial.sh report.sh report-curated.sh; do
   if [ -x "$ROOT/libexec/$t" ]; then r=ok; else r=missing; fi
   assert_eq "$r" "ok" "libexec/$t exists and is executable"
 done
