@@ -31,3 +31,6 @@ jobs:
 
       - name: Unit tests (test/test-imcc.sh)
         run: bash test/test-imcc.sh
+
+      - name: Unit tests (test/test-report-curated.sh)
+        run: bash test/test-report-curated.sh

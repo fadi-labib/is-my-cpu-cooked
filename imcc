@@ -17,7 +17,7 @@ usage: ./imcc <command> [options]
   run        run the stress test            <- most people start here
   ab         suspect-vs-control A/B protocol
   serial     read the CPU serial (ATPO) from a photo of the lid
-  report     build the RMA report bundle
+  report     build the RMA report bundle (--curated for an upload-ready claim)
   watch      install the background crash scanner
   warranty   how to file an Intel warranty claim (RMA)
   guide      explain the whole flow, start to finish
@@ -80,7 +80,12 @@ case "$cmd" in
   run)            exec "$HERE/libexec/run-all.sh" "$@" ;;
   ab)             exec "$HERE/libexec/ab-evidence.sh" "$@" ;;
   serial)         exec "$HERE/libexec/serial.sh" "$@" ;;
-  report)         exec "$HERE/libexec/report.sh" "$@" ;;
+  report)
+    case "${1:-}" in
+      --curated) shift; exec "$HERE/libexec/report-curated.sh" "$@" ;;
+      *)         exec "$HERE/libexec/report.sh" "$@" ;;
+    esac
+    ;;
   watch)          exec "$HERE/watcher/install-watcher.sh" "$@" ;;
   warranty|rma)   warranty ;;
   guide)          guide ;;
